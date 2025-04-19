@@ -252,7 +252,7 @@ function toggleTodoCompletion(id) {
 
   // Store previous completion state to check if we're completing (not uncompleting)
   const wasCompletedBefore = todos[index].completed;
-  
+
   // Toggle completed status
   todos[index].completed = !todos[index].completed;
   todos[index].updated = Date.now();
@@ -261,7 +261,11 @@ function toggleTodoCompletion(id) {
   // 1. Task was NOT completed before (we're marking it complete now)
   // 2. Task is now marked as completed
   // 3. Task is recurring
-  if (!wasCompletedBefore && todos[index].completed && todos[index].recurring !== "none") {
+  if (
+    !wasCompletedBefore &&
+    todos[index].completed &&
+    todos[index].recurring !== "none"
+  ) {
     const original = todos[index];
 
     // Calculate next occurrence based on recurrence pattern
