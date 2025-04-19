@@ -46,6 +46,48 @@ function setupMessageListener() {
       openModal("note-modal");
       return true;
     }
+
+    // Handle calendar-related actions
+    if (message.action === "openCalendarTab") {
+      document
+        .getElementById("calendar-card")
+        .scrollIntoView({ behavior: "smooth" });
+      return true;
+    }
+
+    if (message.action === "editTodo" && message.todoId) {
+      editTodoFromCalendar(message.todoId);
+      return true;
+    }
+
+    if (message.action === "editReminder" && message.reminderId) {
+      editReminderFromCalendar(message.reminderId);
+      return true;
+    }
+  });
+}
+
+// Function to edit a todo from calendar
+function editTodoFromCalendar(todoId) {
+  chrome.storage.sync.get("todos", function (data) {
+    if (data.todos) {
+      const todo = data.todos.find((t) => t.id === todoId);
+      if (todo) {
+        editTodo(todoId); // Call the editTodo function from todos.js
+      }
+    }
+  });
+}
+
+// Function to edit a reminder from calendar
+function editReminderFromCalendar(reminderId) {
+  chrome.storage.sync.get("reminders", function (data) {
+    if (data.reminders) {
+      const reminder = data.reminders.find((r) => r.id === reminderId);
+      if (reminder) {
+        editReminder(reminderId); // Call the editReminder function from reminders.js
+      }
+    }
   });
 }
 
