@@ -1,0 +1,302 @@
+/**
+ * NewTab+ Main CSS
+ * Contains theme variables and general styles
+ */
+
+/* Theme Variables */
+:root {
+  /* Light theme (default) */
+  --primary-color: #4a6fa5;
+  --primary-color-rgb: 74, 111, 165;
+  --secondary-color: #166088;
+  --secondary-color-rgb: 22, 96, 136;
+  --accent-color: #4fc3f7;
+  --accent-color-rgb: 79, 195, 247;
+  --text-color: #333;
+  --text-secondary-color: #666;
+  --background-color: #f5f7fa;
+  --card-bg-color: #fff;
+  --input-bg-color: #fff;
+  --border-color: #e0e0e0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --hover-bg-color: #f8f8f8;
+  --filter-bg-color: #eee;
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --modal-bg-color: #fff;
+
+  --priority-low: #8bc34a;
+  --priority-low-rgb: 139, 195, 74;
+  --priority-medium: #ffc107;
+  --priority-medium-rgb: 255, 193, 7;
+  --priority-high: #f44336;
+  --priority-high-rgb: 244, 67, 54;
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+  --primary-color: #5b83c0; /* Lighter blue for better contrast on dark */
+  --primary-color-rgb: 91, 131, 192;
+  --secondary-color: #64b5f6; /* Brighter blue for secondary elements */
+  --secondary-color-rgb: 100, 181, 246;
+  --accent-color: #00b0ff; /* Brighter accent for dark theme */
+  --accent-color-rgb: 0, 176, 255;
+  --text-color: #e0e0e0; /* Off-white for main text */
+  --text-secondary-color: #aaa; /* Light gray for secondary text */
+  --background-color: #121212; /* Material dark background */
+  --card-bg-color: #1e1e1e; /* Slightly lighter than background */
+  --input-bg-color: #2a2a2a; /* Slightly lighter for input fields */
+  --border-color: #333; /* Darker borders for separation */
+  --shadow-color: rgba(0, 0, 0, 0.3); /* Stronger shadows */
+  --hover-bg-color: #2a2a2a; /* Slightly lighter for hover states */
+  --filter-bg-color: #333; /* Darker filter buttons */
+  --modal-overlay: rgba(0, 0, 0, 0.75); /* Darker modal overlay */
+  --modal-bg-color: #1e1e1e;
+
+  /* Priority colors - slightly adjusted for visibility on dark */
+  --priority-low: #9ccc65; /* Brighter green */
+  --priority-low-rgb: 156, 204, 101;
+  --priority-medium: #ffd54f; /* Brighter yellow */
+  --priority-medium-rgb: 255, 213, 79;
+  --priority-high: #ff5252; /* Brighter red */
+  --priority-high-rgb: 255, 82, 82;
+}
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--card-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 5px 15px var(--shadow-color);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--border-color);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-header h2 {
+  font-size: 1.3rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.card-header h2 i {
+  margin-right: 10px;
+  font-size: 1.1rem;
+}
+
+.card-content {
+  padding: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dashboard Layout */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* General Button Styles */
+.action-btn {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.action-btn:hover {
+  background-color: var(--secondary-color);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1rem;
+  margin-right: 10px;
+}
+
+.btn-secondary:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.icon-btn:hover {
+  background-color: var(--hover-bg-color);
+}
+
+/* Typography */
+h1 {
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+}
+
+.radio-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.radio-group label {
+  display: inline;
+  font-weight: normal;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Priority classes */
+.priority-low {
+  background-color: var(--priority-low);
+}
+
+.priority-medium {
+  background-color: var(--priority-medium);
+}
+
+.priority-high {
+  background-color: var(--priority-high);
+}
+
+/* Utility classes */
+.hidden {
+  display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+}

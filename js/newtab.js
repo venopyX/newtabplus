@@ -1,26 +1,46 @@
-// Main NewTab+ functionality
-document.addEventListener("DOMContentLoaded", function () {
-  // Initialize date and time display
+/**
+ * Main functionality for the NewTab+ extension
+ * Handles core functionality, theme management, and initialization of components
+ */
+
+document.addEventListener("componentsLoaded", function () {
   updateDateTime();
   setInterval(updateDateTime, 1000);
-
-  // Initialize modal functionality
   initModals();
-
-  // Initialize theme functionality
   initTheme();
 
-  // Load all modules
+  document
+    .getElementById("calendar-toggle-btn")
+    .addEventListener("click", function () {
+      const calendarCard = document.getElementById("calendar-card");
+      if (calendarCard) {
+        const wasHidden = calendarCard.style.display === "none";
+        calendarCard.style.display = wasHidden ? "block" : "none";
+
+        // Initialize calendar if it's being shown
+        if (wasHidden && typeof initializeCalendar === "function") {
+          initializeCalendar();
+
+          // Load calendar events from todos, reminders and timed tabs
+          updateCalendarEventsFromAll();
+        }
+      }
+    });
+
   initializeTimedTabs();
   initializeNotes();
   initializeTodos();
   initializeReminders();
-
-  // Setup message listener for popup communication
   setupMessageListener();
 });
 
-// Listen for messages from the extension popup
+document.addEventListener("DOMContentLoaded", function () {
+  initTheme();
+});
+
+/**
+ * Sets up message listeners for extension communication
+ */
 function setupMessageListener() {
   chrome.runtime.onMessage.addListener(function (
     message,
@@ -47,286 +67,429 @@ function setupMessageListener() {
       return true;
     }
 
-    // Handle calendar-related actions
     if (message.action === "openCalendarTab") {
-      document
-        .getElementById("calendar-card")
-        .scrollIntoView({ behavior: "smooth" });
-      return true;
-    }
+      const calendarCard = document.getElementById("calendar-card");
+      if (calendarCard) {
+        const wasHidden = calendarCard.style.display === "none";
+        calendarCard.style.display = "block";
 
-    if (message.action === "editTodo" && message.todoId) {
-      editTodoFromCalendar(message.todoId);
-      return true;
-    }
+        // Initialize calendar
+        if (typeof initializeCalendar === "function") {
+          initializeCalendar();
+          updateCalendarEventsFromAll();
+        }
+      }
 
-    if (message.action === "editReminder" && message.reminderId) {
-      editReminderFromCalendar(message.reminderId);
+      if (message.date) {
+        navigateToDate(message.date);
+      }
       return true;
     }
   });
 }
 
-// Function to edit a todo from calendar
+/**
+ * Opens todo edit form from calendar event
+ * @param {string} todoId - Todo ID to edit
+ */
 function editTodoFromCalendar(todoId) {
-  chrome.storage.sync.get("todos", function (data) {
-    if (data.todos) {
-      const todo = data.todos.find((t) => t.id === todoId);
-      if (todo) {
-        editTodo(todoId); // Call the editTodo function from todos.js
-      }
-    }
-  });
+  const todo = todos.find((t) => t.id === todoId);
+  if (!todo) return;
+
+  document.getElementById("todo-text").value = todo.text;
+
+  if (todo.dueDate) {
+    document.getElementById("todo-duedate").value = formatDateForInput(
+      todo.dueDate
+    );
+  } else {
+    document.getElementById("todo-duedate").value = "";
+  }
+
+  document.getElementById("todo-priority").value = todo.priority || "medium";
+  document.getElementById("todo-recurring").value = todo.recurring || "none";
+
+  const form = document.getElementById("todo-form");
+  form.dataset.mode = "edit";
+  form.dataset.editId = todoId;
+
+  openModal("todo-modal");
 }
 
-// Function to edit a reminder from calendar
+/**
+ * Opens reminder edit form from calendar event
+ * @param {string} reminderId - Reminder ID to edit
+ */
 function editReminderFromCalendar(reminderId) {
-  chrome.storage.sync.get("reminders", function (data) {
-    if (data.reminders) {
-      const reminder = data.reminders.find((r) => r.id === reminderId);
-      if (reminder) {
-        editReminder(reminderId); // Call the editReminder function from reminders.js
-      }
-    }
-  });
+  const reminder = reminders.find((r) => r.id === reminderId);
+  if (!reminder) return;
+
+  document.getElementById("reminder-title").value = reminder.title;
+  document.getElementById("reminder-message").value = reminder.message;
+  document.getElementById("reminder-time").value = formatDateForInput(
+    reminder.time
+  );
+  document.getElementById("reminder-recurring").value =
+    reminder.recurring || "none";
+  document.getElementById("reminder-action").value =
+    reminder.action || "notification";
+
+  const urlContainer = document.getElementById("reminder-tab-url-container");
+  if (reminder.action === "open-tab") {
+    urlContainer.style.display = "block";
+    document.getElementById("reminder-tab-url").value = reminder.url || "";
+  } else {
+    urlContainer.style.display = "none";
+  }
+
+  const form = document.getElementById("reminder-form");
+  form.dataset.mode = "edit";
+  form.dataset.editId = reminderId;
+
+  openModal("reminder-modal");
 }
 
-// Update date and time display
+/**
+ * Updates the date and time display
+ */
 function updateDateTime() {
   const now = new Date();
+  const timeElement = document.getElementById("current-time");
+  const dateElement = document.getElementById("current-date");
 
-  // Update time with AM/PM format
-  document.getElementById("current-time").textContent = now.toLocaleTimeString(
-    [],
-    {
+  if (timeElement) {
+    timeElement.textContent = now.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
-      hour12: true, // This enables AM/PM format
-    }
-  );
+    });
+  }
 
-  // Update date
-  const options = {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  };
-  document.getElementById("current-date").textContent = now.toLocaleDateString(
-    undefined,
-    options
-  );
+  if (dateElement) {
+    dateElement.textContent = now.toLocaleDateString([], {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
 }
 
-// Modal handling
+/**
+ * Initializes modal functionality
+ */
 function initModals() {
-  // Modal container
-  const modalContainer = document.getElementById("modal-container");
-  const modals = document.querySelectorAll(".modal");
   const closeButtons = document.querySelectorAll(".close-modal");
-
-  // Close modal when clicking outside content
-  modalContainer.addEventListener("click", function (e) {
-    if (e.target === modalContainer) {
-      closeAllModals();
-    }
-  });
-
-  // Close modal when clicking close button
   closeButtons.forEach((button) => {
-    button.addEventListener("click", closeAllModals);
+    button.addEventListener("click", () => {
+      closeAllModals();
+    });
   });
 
-  // Close modal on Escape key
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") {
-      closeAllModals();
-    }
+  document.querySelectorAll(".modal").forEach((modal) => {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        closeAllModals();
+      }
+    });
   });
 }
 
-// Open a specific modal
+/**
+ * Opens a modal by ID
+ * @param {string} modalId - ID of the modal to open
+ */
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  const modalContainer = document.getElementById("modal-container");
+  if (modal) {
+    // Find the modal's overlay container
+    const modalOverlay =
+      document.getElementById(`${modalId}-overlay`) ||
+      modal.closest(".modal-overlay");
 
-  // Hide all modals first
-  document.querySelectorAll(".modal").forEach((m) => {
-    m.classList.remove("active");
-  });
+    if (modalOverlay) {
+      modalOverlay.classList.add("active");
+    }
 
-  // Show container and specific modal
-  modalContainer.classList.remove("hidden");
-  modal.classList.add("active");
+    document.getElementById("modal-container").classList.remove("hidden");
+
+    // Special handling for specific modals
+    if (modalId === "tab-timer-modal") {
+      const dateInput = document.getElementById("tab-date");
+      if (dateInput) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        dateInput.value = formatDateForInput(now);
+      }
+    }
+
+    if (modalId === "reminder-modal") {
+      const actionSelect = document.getElementById("reminder-action");
+      if (actionSelect) {
+        const urlContainer = document.getElementById(
+          "reminder-tab-url-container"
+        );
+
+        urlContainer.style.display =
+          actionSelect.value === "open-tab" ? "block" : "none";
+
+        actionSelect.addEventListener("change", function () {
+          urlContainer.style.display =
+            this.value === "open-tab" ? "block" : "none";
+        });
+      }
+    }
+  }
 }
 
-// Close all modals
+/**
+ * Closes all open modals
+ */
 function closeAllModals() {
-  const modalContainer = document.getElementById("modal-container");
-  const modals = document.querySelectorAll(".modal");
+  document.getElementById("modal-container").classList.add("hidden");
+  document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+    overlay.classList.remove("active");
+  });
 
-  modalContainer.classList.add("hidden");
-  modals.forEach((modal) => {
-    modal.classList.remove("active");
+  document.querySelectorAll("form").forEach((form) => {
+    form.reset();
+    delete form.dataset.mode;
+    delete form.dataset.editId;
   });
 }
 
-// Helper function to format date for display
-function formatDate(dateObj) {
-  const now = new Date();
-  const date = new Date(dateObj);
-
-  // If it's today, just show the time
-  if (date.toDateString() === now.toDateString()) {
-    return `Today, ${date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true, // Enable AM/PM format
-    })}`;
-  }
-
-  // If it's tomorrow, show "Tomorrow"
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  if (date.toDateString() === tomorrow.toDateString()) {
-    return `Tomorrow, ${date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true, // Enable AM/PM format
-    })}`;
-  }
-
-  // Otherwise show full date
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true, // Enable AM/PM format
-  });
-}
-
-// Helper function to generate a unique ID
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-// Show a notification
-function showNotification(title, message, options = {}) {
-  // Check if browser supports notifications
-  if (!("Notification" in window)) {
-    console.error("This browser does not support notifications");
-    return;
-  }
-
-  // Check permission
-  if (Notification.permission === "granted") {
-    createNotification();
-  } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        createNotification();
-      }
-    });
-  }
-
-  function createNotification() {
-    const notification = new Notification(title, {
-      body: message,
-      icon: options.icon || "/images/icon48.png",
-      silent: options.silent || false,
-    });
-
-    // Handle notification click
-    notification.onclick =
-      options.onClick ||
-      function () {
-        window.focus();
-        notification.close();
-      };
-
-    // Auto close after 10 seconds if not specified
-    setTimeout(() => notification.close(), options.timeout || 10000);
-  }
-}
-
-// Initialize theme functionality
+/**
+ * Initializes theme functionality
+ */
 function initTheme() {
-  const themeToggleBtn = document.getElementById("theme-toggle-btn");
   const themeSelect = document.getElementById("theme-select");
+  const themeToggle = document.getElementById("theme-toggle-btn");
 
-  // Load saved theme or use system preference
-  loadThemePreference();
-
-  // Update icon based on current theme
-  updateThemeIcon();
-
-  // Add event listeners for theme switching
-  themeToggleBtn.addEventListener("click", function () {
-    const currentTheme =
-      document.documentElement.getAttribute("data-theme") || "light";
-    const newTheme = currentTheme === "dark" ? "light" : "dark";
-
-    setTheme(newTheme);
-    themeSelect.value = newTheme;
-  });
-
-  themeSelect.addEventListener("change", function () {
-    setTheme(this.value);
-  });
-
-  // Listen for system preference changes
-  window
-    .matchMedia("(prefers-color-scheme: dark)")
-    .addEventListener("change", (e) => {
-      if (themeSelect.value === "system") {
-        setTheme("system");
-      }
-    });
-}
-
-// Load saved theme preference or use system default
-function loadThemePreference() {
   chrome.storage.sync.get("theme", function (data) {
     const savedTheme = data.theme || "system";
-    const themeSelect = document.getElementById("theme-select");
-    themeSelect.value = savedTheme;
-    setTheme(savedTheme);
+
+    if (themeSelect) {
+      themeSelect.value = savedTheme;
+    }
+
+    applyTheme(savedTheme);
   });
-}
 
-// Set the theme and save preference
-function setTheme(theme) {
-  let appliedTheme = theme;
-
-  // If system preference, check what the system is using
-  if (theme === "system") {
-    appliedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+  if (themeSelect) {
+    themeSelect.addEventListener("change", function () {
+      const theme = this.value;
+      applyTheme(theme);
+      saveThemePreference(theme);
+    });
   }
 
-  // Apply theme to HTML element
-  document.documentElement.setAttribute("data-theme", appliedTheme);
+  if (themeToggle) {
+    themeToggle.addEventListener("click", function () {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
 
-  // Save preference
-  chrome.storage.sync.set({ theme: theme });
+      applyTheme(newTheme);
 
-  // Update icon
-  updateThemeIcon();
+      if (themeSelect) {
+        themeSelect.value = newTheme;
+      }
+
+      saveThemePreference(newTheme);
+    });
+  }
 }
 
-// Update the theme toggle icon based on current theme
-function updateThemeIcon() {
-  const themeIcon = document.querySelector("#theme-toggle-btn i");
-  const currentTheme = document.documentElement.getAttribute("data-theme");
-
-  if (currentTheme === "dark") {
-    themeIcon.classList.remove("fa-moon");
-    themeIcon.classList.add("fa-sun");
+/**
+ * Applies the selected theme
+ * @param {string} theme - Theme to apply (light, dark, or system)
+ */
+function applyTheme(theme) {
+  if (theme === "system") {
+    const isDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDarkMode ? "dark" : "light"
+    );
+    updateThemeIcon(isDarkMode ? "dark" : "light");
   } else {
-    themeIcon.classList.remove("fa-sun");
-    themeIcon.classList.add("fa-moon");
+    document.documentElement.setAttribute("data-theme", theme);
+    updateThemeIcon(theme);
+  }
+}
+
+/**
+ * Updates the theme toggle icon
+ * @param {string} theme - Current theme
+ */
+function updateThemeIcon(theme) {
+  const icon = document.querySelector("#theme-toggle-btn i");
+  if (icon) {
+    icon.className = theme === "dark" ? "fas fa-sun" : "fas fa-moon";
+  }
+}
+
+/**
+ * Saves theme preference to storage
+ * @param {string} theme - Theme to save
+ */
+function saveThemePreference(theme) {
+  chrome.storage.sync.set({ theme: theme });
+}
+
+/**
+ * Formats a date for input elements
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date string
+ */
+function formatDateForInput(date) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+
+  return (
+    date.getFullYear().toString() +
+    "-" +
+    (date.getMonth() + 1).toString().padStart(2, "0") +
+    "-" +
+    date.getDate().toString().padStart(2, "0") +
+    "T" +
+    date.getHours().toString().padStart(2, "0") +
+    ":" +
+    date.getMinutes().toString().padStart(2, "0")
+  );
+}
+
+/**
+ * Generates a unique ID
+ * @returns {string} Unique ID
+ */
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
+
+/**
+ * Formats a date for display
+ * @param {number|string|Date} timestamp - Date to format
+ * @returns {string} Formatted date string
+ */
+function formatDate(timestamp) {
+  const date = new Date(timestamp);
+  const now = new Date();
+
+  if (date.toDateString() === now.toDateString()) {
+    return (
+      "Today, " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return (
+      "Yesterday, " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  }
+
+  const oneWeekAgo = new Date(now);
+  oneWeekAgo.setDate(now.getDate() - 7);
+  if (date > oneWeekAgo) {
+    return (
+      date.toLocaleDateString([], { weekday: "long" }) +
+      ", " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  }
+
+  return (
+    date.toLocaleDateString([], {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }) +
+    ", " +
+    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  );
+}
+
+/**
+ * Shows a notification
+ * @param {string} title - Notification title
+ * @param {string} message - Notification message
+ * @param {Object} options - Additional options
+ */
+function showNotification(title, message, options = {}) {
+  const notification = document.createElement("div");
+  notification.className = "notification";
+  notification.innerHTML = `
+    <div class="notification-title">${title}</div>
+    <div class="notification-message">${message}</div>
+  `;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => notification.classList.add("show"), 10);
+
+  const timeout = options.timeout || 5000;
+  setTimeout(() => {
+    notification.classList.remove("show");
+    setTimeout(() => notification.remove(), 300);
+  }, timeout);
+}
+
+/**
+ * Updates calendar events from all sources (todos, reminders, timed tabs)
+ */
+function updateCalendarEventsFromAll() {
+  let events = [];
+
+  // Add events from todos
+  if (typeof todos !== "undefined" && Array.isArray(todos)) {
+    const todoEvents = todos
+      .map((todo) => ({
+        id: todo.id,
+        title: todo.text,
+        date: new Date(todo.dueDate),
+        type: "todo",
+        priority: todo.priority || "medium",
+      }))
+      .filter((event) => !isNaN(event.date));
+
+    events = events.concat(todoEvents);
+  }
+
+  // Add events from reminders
+  if (typeof reminders !== "undefined" && Array.isArray(reminders)) {
+    const reminderEvents = reminders
+      .map((reminder) => ({
+        id: reminder.id,
+        title: reminder.title,
+        date: new Date(reminder.time),
+        type: "reminder",
+      }))
+      .filter((event) => !isNaN(event.date));
+
+    events = events.concat(reminderEvents);
+  }
+
+  // Add events from timed tabs
+  if (typeof timedTabs !== "undefined" && Array.isArray(timedTabs)) {
+    const tabEvents = timedTabs
+      .map((tab) => ({
+        id: tab.id,
+        title: tab.title || tab.url,
+        date: new Date(tab.scheduledTime),
+        type: "timedTab",
+      }))
+      .filter((event) => !isNaN(event.date));
+
+    events = events.concat(tabEvents);
+  }
+
+  // Update the calendar with the events
+  if (typeof updateCalendarEvents === "function") {
+    updateCalendarEvents(events);
   }
 }
