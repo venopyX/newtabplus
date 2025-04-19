@@ -1,6 +1,6 @@
 // To-Do List functionality
 let todos = [];
-let todoFilter = "all";
+let todoFilter = "incomplete"; // Changed default from "all" to "incomplete"
 
 function initializeTodos() {
   // Add event listeners
@@ -137,24 +137,25 @@ function renderTodos() {
     case "today":
       filteredTodos = todos.filter(
         (todo) =>
-          !todo.completed &&
-          todo.dueDate &&
-          todo.dueDate >= startOfDay &&
-          todo.dueDate < endOfDay
+          todo.dueDate && todo.dueDate >= startOfDay && todo.dueDate < endOfDay
       );
       break;
     case "upcoming":
       filteredTodos = todos.filter(
-        (todo) => !todo.completed && todo.dueDate && todo.dueDate >= endOfDay
+        (todo) => todo.dueDate && todo.dueDate >= endOfDay
       );
       break;
     case "completed":
       filteredTodos = todos.filter((todo) => todo.completed);
       break;
-    // 'all' shows all non-completed todos
+    case "incomplete":
+      // New filter to show only incomplete tasks
+      filteredTodos = todos.filter((todo) => !todo.completed);
+      break;
     case "all":
     default:
-      filteredTodos = todos.filter((todo) => !todo.completed);
+      // All shows all tasks, both completed and incomplete
+      filteredTodos = todos;
       break;
   }
 
@@ -249,12 +250,18 @@ function toggleTodoCompletion(id) {
   const index = todos.findIndex((todo) => todo.id === id);
   if (index === -1) return;
 
+  // Store previous completion state to check if we're completing (not uncompleting)
+  const wasCompletedBefore = todos[index].completed;
+  
   // Toggle completed status
   todos[index].completed = !todos[index].completed;
   todos[index].updated = Date.now();
 
-  // If completed and recurring, create a new instance
-  if (todos[index].completed && todos[index].recurring !== "none") {
+  // Only create a new instance if:
+  // 1. Task was NOT completed before (we're marking it complete now)
+  // 2. Task is now marked as completed
+  // 3. Task is recurring
+  if (!wasCompletedBefore && todos[index].completed && todos[index].recurring !== "none") {
     const original = todos[index];
 
     // Calculate next occurrence based on recurrence pattern
