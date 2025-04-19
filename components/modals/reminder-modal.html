@@ -1,0 +1,46 @@
+<!-- Reminder Modal component -->
+<div id="reminder-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Add/Edit Reminder</h2>
+    <form id="reminder-form">
+      <div class="form-group">
+        <label for="reminder-title">Title:</label>
+        <input type="text" id="reminder-title" required />
+      </div>
+      <div class="form-group">
+        <label for="reminder-message">Message:</label>
+        <textarea id="reminder-message" rows="3" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="reminder-time">Date & Time:</label>
+        <input type="datetime-local" id="reminder-time" required />
+      </div>
+      <div class="form-group">
+        <label for="reminder-recurring">Recurring:</label>
+        <select id="reminder-recurring">
+          <option value="none">None</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="reminder-action">Action:</label>
+        <select id="reminder-action">
+          <option value="notification">Show Notification</option>
+          <option value="open-tab">Open Tab</option>
+        </select>
+      </div>
+      <div
+        class="form-group"
+        id="reminder-tab-url-container"
+        style="display: none"
+      >
+        <label for="reminder-tab-url">URL to Open:</label>
+        <input type="url" id="reminder-tab-url" />
+      </div>
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+  </div>
+</div>
