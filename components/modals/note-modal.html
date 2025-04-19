@@ -1,0 +1,27 @@
+<!-- Note Modal component -->
+<div id="note-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Add/Edit Note</h2>
+    <form id="note-form">
+      <div class="form-group">
+        <label for="note-title">Title:</label>
+        <input type="text" id="note-title" required />
+      </div>
+      <div class="form-group">
+        <label for="note-category">Category:</label>
+        <select id="note-category">
+          <option value="personal">Personal</option>
+          <option value="work">Work</option>
+          <option value="ideas">Ideas</option>
+          <!-- Dynamic categories will be added here -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="note-content">Content:</label>
+        <textarea id="note-content" rows="6" required></textarea>
+      </div>
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+  </div>
+</div>

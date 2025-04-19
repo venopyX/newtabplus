@@ -1,0 +1,22 @@
+<!-- Notes component for NewTab+ -->
+<section class="card" id="notes">
+  <div class="card-header">
+    <h2><i class="fas fa-sticky-note"></i> Notes</h2>
+    <button id="add-note" class="action-btn">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+  <div class="card-content">
+    <div id="notes-search">
+      <input type="text" placeholder="Search notes..." />
+    </div>
+    <div id="notes-categories">
+      <button data-category="all" class="active">All</button>
+      <button data-category="personal">Personal</button>
+      <button data-category="work">Work</button>
+      <button data-category="ideas">Ideas</button>
+      <button id="add-category">+ Add</button>
+    </div>
+    <div id="notes-list" class="list-container"></div>
+  </div>
+</section>
