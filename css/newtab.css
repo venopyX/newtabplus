@@ -280,8 +280,8 @@ h1 {
 
 /* Note View Modal Styles */
 .note-view-content {
-  max-width: 800px;
-  width: 90%;
+  max-width: 900px; /* Increased from 800px */
+  width: 95%; /* Increased from 90% */
 }
 
 .note-view-header {
