@@ -1,0 +1,35 @@
+<!-- Todo Modal component -->
+<div id="todo-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Add/Edit Todo</h2>
+    <form id="todo-form">
+      <div class="form-group">
+        <label for="todo-text">Task:</label>
+        <input type="text" id="todo-text" required />
+      </div>
+      <div class="form-group">
+        <label for="todo-duedate">Due Date & Time (Optional):</label>
+        <input type="datetime-local" id="todo-duedate" />
+      </div>
+      <div class="form-group">
+        <label for="todo-priority">Priority:</label>
+        <select id="todo-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="todo-recurring">Recurring:</label>
+        <select id="todo-recurring">
+          <option value="none">None</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+  </div>
+</div>
