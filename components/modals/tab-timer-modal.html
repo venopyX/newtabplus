@@ -1,0 +1,62 @@
+<!-- Tab Timer Modal component -->
+<div id="tab-timer-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Schedule Tab</h2>
+    <form id="tab-timer-form">
+      <div class="form-group">
+        <label for="tab-url">URL:</label>
+        <input type="url" id="tab-url" required />
+      </div>
+      <div class="form-group">
+        <label for="tab-title">Title:</label>
+        <input type="text" id="tab-title" required />
+      </div>
+      <div class="form-group">
+        <label for="tab-date">Date & Time:</label>
+        <input type="datetime-local" id="tab-date" required />
+      </div>
+      <div class="form-group">
+        <label>Open Type:</label>
+        <div class="radio-group">
+          <input
+            type="radio"
+            id="open-auto"
+            name="open-type"
+            value="auto"
+            checked
+          />
+          <label for="open-auto">Open Automatically</label>
+          <input
+            type="radio"
+            id="open-notify"
+            name="open-type"
+            value="notify"
+          />
+          <label for="open-notify">Notify Only</label>
+        </div>
+      </div>
+      <div class="form-group" id="open-options">
+        <label>Open In:</label>
+        <div class="radio-group">
+          <input
+            type="radio"
+            id="open-foreground"
+            name="open-location"
+            value="foreground"
+            checked
+          />
+          <label for="open-foreground">Foreground</label>
+          <input
+            type="radio"
+            id="open-background"
+            name="open-location"
+            value="background"
+          />
+          <label for="open-background">Background</label>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+  </div>
+</div>
