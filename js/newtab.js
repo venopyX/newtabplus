@@ -179,6 +179,7 @@ function formatDate(dateObj) {
     return `Today, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true // Enable AM/PM format
     })}`;
   }
 
@@ -189,6 +190,7 @@ function formatDate(dateObj) {
     return `Tomorrow, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true // Enable AM/PM format
     })}`;
   }
 
@@ -198,6 +200,7 @@ function formatDate(dateObj) {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true // Enable AM/PM format
   });
 }
 
