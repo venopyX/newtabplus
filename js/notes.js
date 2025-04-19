@@ -228,13 +228,8 @@ function renderFilteredNotes(filteredNotes) {
       </div>
     `;
 
-    // Open note view modal when clicked on the main content
-    noteElement
-      .querySelector(".note-preview")
-      .addEventListener("click", () => viewNote(note.id));
-    noteElement
-      .querySelector(".note-title")
-      .addEventListener("click", () => viewNote(note.id));
+    // Make the entire note card clickable
+    noteElement.addEventListener("click", () => viewNote(note.id));
 
     // Edit button handler
     noteElement.querySelector(".edit-btn").addEventListener("click", (e) => {
@@ -336,16 +331,21 @@ function viewNote(id) {
     note.updated
   );
 
-  // For now just display the content as is - later this will be enhanced with markdown parsing
-  document.getElementById("note-view-content").innerHTML = note.content;
+  // Process content using marked.js library for proper markdown parsing
+  document.getElementById("note-view-content").innerHTML = marked.parse(
+    note.content
+  );
+
+  // Reset the edit button event listeners
+  const editBtn = document.getElementById("note-view-edit");
+  const newEditBtn = editBtn.cloneNode(true);
+  editBtn.parentNode.replaceChild(newEditBtn, editBtn);
 
   // Set up the edit button to open the edit form
-  document
-    .getElementById("note-view-edit")
-    .addEventListener("click", function () {
-      closeAllModals(); // Close the view modal
-      setTimeout(() => openNote(id), 100); // Open the edit modal with a slight delay
-    });
+  newEditBtn.addEventListener("click", function () {
+    closeAllModals(); // Close the view modal
+    setTimeout(() => openNote(id), 100); // Open the edit modal with a slight delay
+  });
 
   // Open the view modal
   openModal("note-view-modal");
@@ -374,4 +374,14 @@ function deleteNote(id) {
       timeout: 3000,
     });
   });
+}
+
+// Helper function to escape HTML
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
