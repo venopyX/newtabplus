@@ -14,17 +14,30 @@
     <div class="container">
       <header>
         <h1>NewTab+</h1>
-        <div class="theme-controls">
-          <div class="theme-toggle">
-            <label for="theme-select">Theme:</label>
-            <select id="theme-select">
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-            <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme">
-              <i class="fas fa-moon"></i>
-            </button>
+        <div class="controls-container">
+          <button
+            id="calendar-toggle-btn"
+            class="icon-btn"
+            title="Toggle Calendar View"
+          >
+            <i class="fas fa-calendar-alt"></i>
+          </button>
+          <div class="theme-controls">
+            <div class="theme-toggle">
+              <label for="theme-select">Theme:</label>
+              <select id="theme-select">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+              <button
+                id="theme-toggle-btn"
+                class="icon-btn"
+                title="Toggle Theme"
+              >
+                <i class="fas fa-moon"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="date-time">
@@ -32,6 +45,42 @@
           <div id="current-date"></div>
         </div>
       </header>
+
+      <!-- Calendar Section - Hidden by default -->
+      <section class="card" id="calendar-card" style="display: none">
+        <div class="card-header">
+          <h2><i class="fas fa-calendar-alt"></i> Calendar</h2>
+          <div class="calendar-controls">
+            <select id="calendar-view-selector">
+              <option value="month">Month</option>
+              <option value="week">Week</option>
+              <option value="day">Day</option>
+            </select>
+          </div>
+        </div>
+        <div
+          class="card-content calendar-card-content"
+          style="max-height: none; overflow: visible"
+        >
+          <div id="calendar-container" class="calendar-container">
+            <div class="calendar-header">
+              <div class="calendar-nav">
+                <button id="calendar-prev" class="calendar-nav-btn">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <div id="calendar-date-display" class="calendar-date"></div>
+                <button id="calendar-next" class="calendar-nav-btn">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+              <button id="calendar-today" class="calendar-today-btn">
+                Today
+              </button>
+            </div>
+            <div id="calendar-content" class="calendar-content"></div>
+          </div>
+        </div>
+      </section>
 
       <div class="dashboard">
         <!-- Timed Tab Recall Section -->
@@ -287,5 +336,6 @@
     <script src="../js/notes.js"></script>
     <script src="../js/todos.js"></script>
     <script src="../js/reminders.js"></script>
+    <script src="../js/calendar.js"></script>
   </body>
 </html>
