@@ -96,12 +96,15 @@ function updateDateTime() {
   const now = new Date();
 
   // Update time with AM/PM format
-  document.getElementById("current-time").textContent = now.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true // This enables AM/PM format
-  });
+  document.getElementById("current-time").textContent = now.toLocaleTimeString(
+    [],
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true, // This enables AM/PM format
+    }
+  );
 
   // Update date
   const options = {
@@ -179,7 +182,7 @@ function formatDate(dateObj) {
     return `Today, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true // Enable AM/PM format
+      hour12: true, // Enable AM/PM format
     })}`;
   }
 
@@ -190,7 +193,7 @@ function formatDate(dateObj) {
     return `Tomorrow, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true // Enable AM/PM format
+      hour12: true, // Enable AM/PM format
     })}`;
   }
 
@@ -200,7 +203,7 @@ function formatDate(dateObj) {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true // Enable AM/PM format
+    hour12: true, // Enable AM/PM format
   });
 }
 
