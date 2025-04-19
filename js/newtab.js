@@ -95,13 +95,13 @@ function editReminderFromCalendar(reminderId) {
 function updateDateTime() {
   const now = new Date();
 
-  // Update time
-  const hours = now.getHours().toString().padStart(2, "0");
-  const minutes = now.getMinutes().toString().padStart(2, "0");
-  const seconds = now.getSeconds().toString().padStart(2, "0");
-  document.getElementById(
-    "current-time"
-  ).textContent = `${hours}:${minutes}:${seconds}`;
+  // Update time with AM/PM format
+  document.getElementById("current-time").textContent = now.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true // This enables AM/PM format
+  });
 
   // Update date
   const options = {
