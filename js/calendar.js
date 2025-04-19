@@ -1,734 +1,666 @@
-// Calendar functionality for NewTab+
-let calendar = {
-  currentDate: new Date(),
-  currentView: "month", // 'day', 'week', 'month'
-  events: [], // Combined array of reminders, todos with due dates, and scheduled tabs
+/**
+ * Calendar module for NewTab+
+ */
 
-  // Initialize calendar
-  init: function () {
-    this.loadEvents();
-    this.renderCalendar();
-    this.setupEventListeners();
-  },
+let calendarView = "month";
+let calendarEvents = [];
+let currentDate = new Date();
+let currentViewDate = new Date();
 
-  // Load events from all sources
-  loadEvents: function () {
-    this.events = [];
+/**
+ * Initialize the calendar when components are loaded
+ */
+function initializeCalendar() {
+  const viewSelector = document.getElementById("calendar-view-selector");
+  const prevButton = document.getElementById("calendar-prev");
+  const nextButton = document.getElementById("calendar-next");
+  const todayButton = document.getElementById("calendar-today");
 
-    // Load scheduled tabs
-    chrome.storage.sync.get("timedTabs", (data) => {
-      if (data.timedTabs && Array.isArray(data.timedTabs)) {
-        data.timedTabs.forEach((tab) => {
-          if (!tab.processed) {
-            this.events.push({
-              id: tab.id,
-              title: tab.title,
-              start: new Date(tab.scheduledTime),
-              end: new Date(tab.scheduledTime + 3600000), // Add 1 hour for visual display
-              type: "tab",
-              url: tab.url,
-              color: "#4fc3f7", // Use accent color for tabs
-            });
-          }
-        });
-      }
-
-      // Load todos with due dates
-      chrome.storage.sync.get("todos", (data) => {
-        if (data.todos && Array.isArray(data.todos)) {
-          data.todos.forEach((todo) => {
-            // Check if dueDate exists and convert it to Date object
-            if (todo.dueDate && !todo.completed) {
-              // Determine color based on priority
-              let color;
-              switch (todo.priority) {
-                case "high":
-                  color = "#f44336";
-                  break;
-                case "medium":
-                  color = "#ffc107";
-                  break;
-                case "low":
-                  color = "#8bc34a";
-                  break;
-                default:
-                  color = "#ffc107";
-              }
-
-              // Parse dueDate correctly - it might be a string or a number
-              const dueDate =
-                typeof todo.dueDate === "string"
-                  ? new Date(todo.dueDate)
-                  : new Date(parseInt(todo.dueDate));
-
-              // Add the actual todo to calendar events
-              this.events.push({
-                id: todo.id,
-                title: todo.text,
-                start: dueDate,
-                end: new Date(dueDate.getTime() + 1800000), // Add 30 minutes for display
-                type: "todo",
-                priority: todo.priority,
-                recurring: todo.recurring || "none",
-                color: color,
-              });
-
-              // If task is recurring, generate additional instances for the calendar view
-              if (todo.recurring && todo.recurring !== "none") {
-                this.generateRecurringEvents(todo, dueDate, color, 12); // Generate next 12 occurrences
-              }
-            }
-          });
-        }
-
-        // Load reminders
-        chrome.storage.sync.get("reminders", (data) => {
-          if (data.reminders && Array.isArray(data.reminders)) {
-            data.reminders.forEach((reminder) => {
-              if (!reminder.triggered) {
-                // Parse scheduledTime correctly
-                const scheduledTime =
-                  typeof reminder.scheduledTime === "string"
-                    ? new Date(reminder.scheduledTime)
-                    : new Date(parseInt(reminder.scheduledTime));
-
-                // Add the base reminder
-                this.events.push({
-                  id: reminder.id,
-                  title: reminder.title,
-                  description: reminder.message,
-                  start: scheduledTime,
-                  end: new Date(scheduledTime.getTime() + 1800000), // Add 30 minutes
-                  type: "reminder",
-                  recurring: reminder.recurring || "none",
-                  color: "#5b83c0", // Use primary color for reminders
-                });
-
-                // If reminder is recurring, generate additional instances for the calendar
-                if (reminder.recurring && reminder.recurring !== "none") {
-                  this.generateRecurringEvents(
-                    reminder,
-                    scheduledTime,
-                    "#5b83c0",
-                    12
-                  );
-                }
-              }
-            });
-          }
-
-          // Sort events by date
-          this.events.sort((a, b) => a.start - b.start);
-
-          // Log events for debugging
-          console.log("Calendar events loaded:", this.events);
-
-          // Re-render calendar with all events
-          this.renderCalendar();
-        });
-      });
+  if (viewSelector) {
+    viewSelector.addEventListener("change", function () {
+      calendarView = this.value;
+      renderCalendar();
     });
-  },
+  }
 
-  // Generate recurring instances of events for the calendar view
-  generateRecurringEvents: function (item, startDate, color, count) {
-    if (!startDate || !item.recurring || item.recurring === "none") return;
-
-    // Clone the start date to avoid modifying the original
-    let currentDate = new Date(startDate.getTime());
-    let nextDate;
-
-    // Generate future occurrences
-    for (let i = 0; i < count; i++) {
-      // Calculate next occurrence based on recurrence pattern
-      switch (item.recurring) {
-        case "daily":
-          nextDate = new Date(currentDate.getTime());
-          nextDate.setDate(nextDate.getDate() + 1);
-          break;
-        case "weekly":
-          nextDate = new Date(currentDate.getTime());
-          nextDate.setDate(nextDate.getDate() + 7);
-          break;
-        case "monthly":
-          nextDate = new Date(currentDate.getTime());
-          nextDate.setMonth(nextDate.getMonth() + 1);
-          break;
-        default:
-          continue; // Skip if not a valid recurring pattern
-      }
-
-      // Create a virtual recurring event instance for the calendar
-      this.events.push({
-        id: `${item.id}-recurring-${i}`, // Create unique ID for each instance
-        title: item.text || item.title,
-        start: nextDate,
-        end: new Date(nextDate.getTime() + 1800000), // Add 30 minutes
-        type: item.dueDate ? "todo" : "reminder", // Determine type
-        priority: item.priority,
-        recurring: item.recurring,
-        description: item.message,
-        isRecurring: true, // Mark as recurring instance
-        parentId: item.id, // Reference to original
-        color: color,
-        virtualEvent: true, // Mark as virtual for special handling
-      });
-
-      // Update current date for next iteration
-      currentDate = nextDate;
-    }
-  },
-
-  // Setup event listeners for calendar navigation and view switching
-  setupEventListeners: function () {
-    // Previous button
-    document.getElementById("calendar-prev")?.addEventListener("click", () => {
-      this.navigate(-1);
+  if (prevButton) {
+    prevButton.addEventListener("click", function () {
+      navigateCalendar(-1);
     });
+  }
 
-    // Next button
-    document.getElementById("calendar-next")?.addEventListener("click", () => {
-      this.navigate(1);
+  if (nextButton) {
+    nextButton.addEventListener("click", function () {
+      navigateCalendar(1);
     });
+  }
 
-    // Today button
-    document.getElementById("calendar-today")?.addEventListener("click", () => {
-      this.currentDate = new Date();
-      this.renderCalendar();
+  if (todayButton) {
+    todayButton.addEventListener("click", function () {
+      currentViewDate = new Date();
+      renderCalendar();
     });
+  }
 
-    // View selector
-    document
-      .getElementById("calendar-view-selector")
-      ?.addEventListener("change", (e) => {
-        this.currentView = e.target.value;
-        this.renderCalendar();
+  renderCalendar();
+}
+
+/**
+ * Navigate the calendar forward or backward
+ */
+function navigateCalendar(direction) {
+  switch (calendarView) {
+    case "day":
+      currentViewDate.setDate(currentViewDate.getDate() + direction);
+      break;
+    case "week":
+      currentViewDate.setDate(currentViewDate.getDate() + direction * 7);
+      break;
+    case "month":
+    default:
+      currentViewDate.setMonth(currentViewDate.getMonth() + direction);
+      break;
+  }
+
+  renderCalendar();
+}
+
+/**
+ * Navigate to a specific date
+ */
+function navigateToDate(date) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+
+  currentViewDate = new Date(date);
+  renderCalendar();
+}
+
+/**
+ * Render the calendar in the current view
+ */
+function renderCalendar() {
+  updateDateDisplay();
+
+  const calendarContent = document.getElementById("calendar-content");
+  if (!calendarContent) return;
+
+  calendarContent.innerHTML = "";
+
+  switch (calendarView) {
+    case "day":
+      renderDayView(calendarContent);
+      break;
+    case "week":
+      renderWeekView(calendarContent);
+      break;
+    case "month":
+    default:
+      renderMonthView(calendarContent);
+      break;
+  }
+}
+
+/**
+ * Update the date display in the calendar header
+ */
+function updateDateDisplay() {
+  const dateDisplay = document.getElementById("calendar-date-display");
+  if (!dateDisplay) return;
+
+  const options = { year: "numeric" };
+
+  switch (calendarView) {
+    case "day":
+      Object.assign(options, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
       });
-  },
+      break;
+    case "week":
+      const weekStart = getWeekStartDate(currentViewDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
 
-  // Navigate forward or backward in the calendar
-  navigate: function (direction) {
-    switch (this.currentView) {
-      case "day":
-        this.currentDate.setDate(this.currentDate.getDate() + direction);
-        break;
-      case "week":
-        this.currentDate.setDate(this.currentDate.getDate() + direction * 7);
-        break;
-      case "month":
-        this.currentDate.setMonth(this.currentDate.getMonth() + direction);
-        break;
-    }
-    this.renderCalendar();
-  },
-
-  // Render the appropriate calendar view
-  renderCalendar: function () {
-    const calendarContainer = document.getElementById("calendar-container");
-    if (!calendarContainer) return;
-
-    // Update header date display
-    this.updateHeaderDate();
-
-    // Clear existing calendar content
-    const calendarContent = document.getElementById("calendar-content");
-    calendarContent.innerHTML = "";
-
-    // Render the appropriate view
-    switch (this.currentView) {
-      case "day":
-        this.renderDayView(calendarContent);
-        break;
-      case "week":
-        this.renderWeekView(calendarContent);
-        break;
-      case "month":
-        this.renderMonthView(calendarContent);
-        break;
-    }
-  },
-
-  // Update the header date display based on current view
-  updateHeaderDate: function () {
-    const dateDisplay = document.getElementById("calendar-date-display");
-    if (!dateDisplay) return;
-
-    const options = { year: "numeric", month: "long" };
-
-    switch (this.currentView) {
-      case "day":
-        options.day = "numeric";
-        dateDisplay.textContent = this.currentDate.toLocaleDateString(
-          undefined,
-          options
-        );
-        break;
-      case "week":
-        // Get first and last day of week
-        const weekStart = new Date(this.currentDate);
-        weekStart.setDate(
-          this.currentDate.getDate() - this.currentDate.getDay()
-        );
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-
-        // Format date range
-        if (weekStart.getMonth() === weekEnd.getMonth()) {
-          dateDisplay.textContent = `${weekStart.toLocaleDateString(undefined, {
-            month: "long",
-          })} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
-        } else {
-          dateDisplay.textContent = `${weekStart.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          })} - ${weekEnd.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}`;
-        }
-        break;
-      case "month":
-        dateDisplay.textContent = this.currentDate.toLocaleDateString(
-          undefined,
-          { month: "long", year: "numeric" }
-        );
-        break;
-    }
-  },
-
-  // Render day view
-  renderDayView: function (container) {
-    const dayContainer = document.createElement("div");
-    dayContainer.className = "calendar-day-view";
-
-    // Create time slots (24 hours)
-    for (let hour = 0; hour < 24; hour++) {
-      const timeSlot = document.createElement("div");
-      timeSlot.className = "calendar-time-slot";
-
-      // Add time label
-      const timeLabel = document.createElement("div");
-      timeLabel.className = "calendar-time-label";
-      const hourDisplay = hour % 12 === 0 ? 12 : hour % 12;
-      timeLabel.textContent = `${hourDisplay}:00 ${hour < 12 ? "AM" : "PM"}`;
-      timeSlot.appendChild(timeLabel);
-
-      // Add events container for this hour
-      const eventsContainer = document.createElement("div");
-      eventsContainer.className = "calendar-events-container";
-
-      // Filter events for this day and hour
-      const startOfHour = new Date(this.currentDate);
-      startOfHour.setHours(hour, 0, 0, 0);
-
-      const endOfHour = new Date(startOfHour);
-      endOfHour.setHours(hour + 1, 0, 0, 0);
-
-      // Find events for this time slot
-      const hourEvents = this.events.filter((event) => {
-        return event.start >= startOfHour && event.start < endOfHour;
-      });
-
-      // Add events to the container
-      hourEvents.forEach((event) => {
-        const eventEl = this.createEventElement(event);
-        eventsContainer.appendChild(eventEl);
-      });
-
-      timeSlot.appendChild(eventsContainer);
-      dayContainer.appendChild(timeSlot);
-    }
-
-    container.appendChild(dayContainer);
-  },
-
-  // Render week view
-  renderWeekView: function (container) {
-    const weekContainer = document.createElement("div");
-    weekContainer.className = "calendar-week-view";
-
-    // Create header with day names
-    const header = document.createElement("div");
-    header.className = "calendar-week-header";
-
-    // Find the first day of the week (Sunday)
-    const firstDayOfWeek = new Date(this.currentDate);
-    firstDayOfWeek.setDate(
-      this.currentDate.getDate() - this.currentDate.getDay()
-    );
-
-    // Create columns for each day
-    for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(firstDayOfWeek);
-      dayDate.setDate(firstDayOfWeek.getDate() + i);
-
-      const dayCol = document.createElement("div");
-      dayCol.className = "calendar-day-column";
-
-      // Add day header
-      const dayHeader = document.createElement("div");
-      dayHeader.className = "calendar-day-header";
-      dayHeader.innerHTML = `
-        <div class="day-name">${dayDate.toLocaleDateString(undefined, {
-          weekday: "short",
-        })}</div>
-        <div class="day-number">${dayDate.getDate()}</div>
-      `;
-
-      // Highlight current day
-      if (dayDate.toDateString() === new Date().toDateString()) {
-        dayHeader.classList.add("current-day");
+      if (weekStart.getMonth() === weekEnd.getMonth()) {
+        dateDisplay.textContent = `${weekStart.toLocaleDateString("en-US", {
+          month: "long",
+        })} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+      } else if (weekStart.getFullYear() === weekEnd.getFullYear()) {
+        dateDisplay.textContent = `${weekStart.toLocaleDateString("en-US", {
+          month: "short",
+        })} ${weekStart.getDate()} - ${weekEnd.toLocaleDateString("en-US", {
+          month: "short",
+        })} ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+      } else {
+        dateDisplay.textContent = `${weekStart.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })} - ${weekEnd.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}`;
       }
+      return;
+    case "month":
+    default:
+      Object.assign(options, { month: "long" });
+      break;
+  }
 
-      dayCol.appendChild(dayHeader);
+  dateDisplay.textContent = currentViewDate.toLocaleDateString(
+    "en-US",
+    options
+  );
+}
 
-      // Create time slots container
-      const timeSlotsContainer = document.createElement("div");
-      timeSlotsContainer.className = "calendar-day-slots";
+/**
+ * Render month view calendar
+ */
+function renderMonthView(container) {
+  const month = currentViewDate.getMonth();
+  const year = currentViewDate.getFullYear();
 
-      // Create 24 hour slots
-      for (let hour = 0; hour < 24; hour++) {
-        const timeSlot = document.createElement("div");
-        timeSlot.className = "calendar-time-slot";
+  const monthStart = new Date(year, month, 1);
+  const firstDay = monthStart.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Only add time label to first column
-        if (i === 0) {
-          const timeLabel = document.createElement("div");
-          timeLabel.className = "calendar-time-label";
-          const hourDisplay = hour % 12 === 0 ? 12 : hour % 12;
-          timeLabel.textContent = `${hourDisplay} ${hour < 12 ? "AM" : "PM"}`;
-          timeSlot.appendChild(timeLabel);
-        }
+  const calendarGrid = document.createElement("div");
+  calendarGrid.className = "calendar-grid month-view";
 
-        // Add events for this hour
-        const startOfHour = new Date(dayDate);
-        startOfHour.setHours(hour, 0, 0, 0);
+  // Add day headers
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  dayNames.forEach((day) => {
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "day-name";
+    dayHeader.textContent = day;
+    calendarGrid.appendChild(dayHeader);
+  });
 
-        const endOfHour = new Date(startOfHour);
-        endOfHour.setHours(hour + 1, 0, 0, 0);
+  // Add empty cells for days before the first of month
+  for (let i = 0; i < firstDay; i++) {
+    const emptyCell = document.createElement("div");
+    emptyCell.className = "calendar-day empty";
+    calendarGrid.appendChild(emptyCell);
+  }
 
-        // Find events for this time slot
-        const hourEvents = this.events.filter((event) => {
-          const eventStart = new Date(event.start);
-          return eventStart >= startOfHour && eventStart < endOfHour;
-        });
+  // Add days of month
+  const today = new Date();
+  const isCurrentMonth =
+    today.getMonth() === month && today.getFullYear() === year;
 
-        // Add events to the slot
-        hourEvents.forEach((event) => {
-          const eventEl = this.createEventElement(event);
-          timeSlot.appendChild(eventEl);
-        });
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dayCell = document.createElement("div");
+    dayCell.className = "calendar-day";
+    dayCell.dataset.date = formatDateString(date);
 
-        timeSlotsContainer.appendChild(timeSlot);
-      }
-
-      dayCol.appendChild(timeSlotsContainer);
-      weekContainer.appendChild(dayCol);
+    if (isCurrentMonth && day === today.getDate()) {
+      dayCell.classList.add("today");
     }
 
-    container.appendChild(weekContainer);
-  },
-
-  // Render month view
-  renderMonthView: function (container) {
-    const monthContainer = document.createElement("div");
-    monthContainer.className = "calendar-month-view";
-
-    // Create header with day names
-    const header = document.createElement("div");
-    header.className = "calendar-month-header";
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    dayNames.forEach((day) => {
-      const dayHeader = document.createElement("div");
-      dayHeader.className = "calendar-day-header";
-      dayHeader.textContent = day;
-      header.appendChild(dayHeader);
-    });
-
-    monthContainer.appendChild(header);
-
-    // Create calendar grid
-    const calendarGrid = document.createElement("div");
-    calendarGrid.className = "calendar-grid";
-
-    // Get first day of the month
-    const firstDayOfMonth = new Date(
-      this.currentDate.getFullYear(),
-      this.currentDate.getMonth(),
-      1
-    );
-    const lastDayOfMonth = new Date(
-      this.currentDate.getFullYear(),
-      this.currentDate.getMonth() + 1,
-      0
-    );
-
-    // Get the day of the week the first day falls on (0 = Sunday, 6 = Saturday)
-    const firstDayOfWeek = firstDayOfMonth.getDay();
-
-    // Calculate total days to display (including padding days)
-    const totalDays = firstDayOfWeek + lastDayOfMonth.getDate();
-    const totalWeeks = Math.ceil(totalDays / 7);
-
-    // Get previous month's last days for padding
-    const prevMonth = new Date(firstDayOfMonth);
-    prevMonth.setDate(0);
-    const prevMonthLastDay = prevMonth.getDate();
-
-    let dayCounter = 1;
-    let nextMonthCounter = 1;
-
-    // Create week rows
-    for (let week = 0; week < totalWeeks; week++) {
-      const weekRow = document.createElement("div");
-      weekRow.className = "calendar-week";
-
-      // Create day cells
-      for (let day = 0; day < 7; day++) {
-        const dayCell = document.createElement("div");
-        dayCell.className = "calendar-day";
-
-        // Previous month padding
-        if (week === 0 && day < firstDayOfWeek) {
-          const prevDate = prevMonthLastDay - (firstDayOfWeek - day - 1);
-          dayCell.innerHTML = `<div class="day-number faded">${prevDate}</div>`;
-          dayCell.classList.add("other-month");
-        }
-        // Next month padding
-        else if (dayCounter > lastDayOfMonth.getDate()) {
-          dayCell.innerHTML = `<div class="day-number faded">${nextMonthCounter}</div>`;
-          dayCell.classList.add("other-month");
-          nextMonthCounter++;
-        }
-        // Current month
-        else {
-          dayCell.innerHTML = `<div class="day-number">${dayCounter}</div>`;
-
-          // Highlight current day
-          const currentDate = new Date(
-            this.currentDate.getFullYear(),
-            this.currentDate.getMonth(),
-            dayCounter
-          );
-          if (currentDate.toDateString() === new Date().toDateString()) {
-            dayCell.classList.add("current-day");
-          }
-
-          // Get events for this day
-          const dayStart = new Date(
-            this.currentDate.getFullYear(),
-            this.currentDate.getMonth(),
-            dayCounter
-          );
-          const dayEnd = new Date(
-            this.currentDate.getFullYear(),
-            this.currentDate.getMonth(),
-            dayCounter + 1
-          );
-
-          const dayEvents = this.events.filter((event) => {
-            return event.start >= dayStart && event.start < dayEnd;
-          });
-
-          // Add event indicators
-          if (dayEvents.length > 0) {
-            const eventsContainer = document.createElement("div");
-            eventsContainer.className = "day-events-container";
-
-            // Limit to showing max 3 events with a "+X more" indicator
-            const visibleEvents = dayEvents.slice(0, 3);
-            visibleEvents.forEach((event) => {
-              const eventEl = this.createEventElement(event, true); // compact = true
-              eventsContainer.appendChild(eventEl);
-            });
-
-            // Add "more" indicator if needed
-            if (dayEvents.length > 3) {
-              const moreIndicator = document.createElement("div");
-              moreIndicator.className = "more-events";
-              moreIndicator.textContent = `+${dayEvents.length - 3} more`;
-              eventsContainer.appendChild(moreIndicator);
-            }
-
-            dayCell.appendChild(eventsContainer);
-          }
-
-          dayCounter++;
-        }
-
-        weekRow.appendChild(dayCell);
-      }
-
-      calendarGrid.appendChild(weekRow);
-    }
-
-    monthContainer.appendChild(calendarGrid);
-    container.appendChild(monthContainer);
-  },
-
-  // Create an event element
-  createEventElement: function (event, compact = false) {
-    const eventEl = document.createElement("div");
-    eventEl.className = `calendar-event event-${event.type}`;
-    eventEl.style.backgroundColor = event.color;
-
-    if (compact) {
-      // Compact view for month calendar
-      eventEl.innerHTML = `
-        <div class="event-title">${event.title}</div>
-      `;
-    } else {
-      // Full view for day/week calendar
-      const timeStr = event.start.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      eventEl.innerHTML = `
-        <div class="event-time">${timeStr}</div>
-        <div class="event-title">${event.title}</div>
-      `;
-
-      if (event.type === "todo") {
-        eventEl.innerHTML += `<div class="event-priority ${event.priority}-priority"></div>`;
-      }
-
-      if (event.type === "reminder" && event.recurring !== "none") {
-        eventEl.innerHTML += `<div class="event-recurring"><i class="fas fa-sync-alt"></i></div>`;
-      }
-    }
-
-    // Add click handler
-    eventEl.addEventListener("click", () => this.handleEventClick(event));
-
-    return eventEl;
-  },
-
-  // Handle event click
-  handleEventClick: function (event) {
-    // Different behavior based on event type
-    switch (event.type) {
-      case "tab":
-        // Open the tab
-        if (confirm(`Open "${event.title}" now?`)) {
-          chrome.tabs.create({ url: event.url });
-        }
-        break;
-
-      case "todo":
-        // Edit the todo directly on the current page
-        editTodo(event.id);
-        break;
-
-      case "reminder":
-        // Edit the reminder directly on the current page
-        editReminder(event.id);
-        break;
-    }
-  },
-
-  // Create popup calendar
-  createPopupCalendar: function (container) {
-    // Store original view and date
-    const originalView = this.currentView;
-    const originalDate = new Date(this.currentDate);
-
-    // Set to month view for popup
-    this.currentView = "month";
-
-    // Create calendar UI elements
-    container.innerHTML = `
-      <div class="calendar-header">
-        <div class="calendar-nav">
-          <button id="calendar-prev" class="calendar-nav-btn"><i class="fas fa-chevron-left"></i></button>
-          <div id="calendar-date-display" class="calendar-date"></div>
-          <button id="calendar-next" class="calendar-nav-btn"><i class="fas fa-chevron-right"></i></button>
-        </div>
-        <button id="calendar-today" class="calendar-today-btn">Today</button>
-      </div>
-      <div id="calendar-content" class="calendar-content"></div>
-      <div class="calendar-footer">
-        <button id="calendar-open-full" class="calendar-open-btn">Open Full Calendar</button>
-      </div>
+    dayCell.innerHTML = `
+      <div class="day-number">${day}</div>
+      <div class="day-events"></div>
     `;
 
-    // Render calendar content
-    this.renderCalendar();
+    // Add events for this day
+    const dayEvents = dayCell.querySelector(".day-events");
+    const eventsForDay = getEventsForDay(date);
 
-    // Add event listeners for popup
-    this.setupEventListeners();
+    if (eventsForDay.length > 0) {
+      dayCell.classList.add("has-events");
 
-    // Add specific listener for "Open Full Calendar" button
-    document
-      .getElementById("calendar-open-full")
-      .addEventListener("click", () => {
-        chrome.tabs.create({ url: "chrome://newtab/" }, function (tab) {
-          chrome.tabs.onUpdated.addListener(function listener(
-            tabId,
-            changeInfo
-          ) {
-            if (tabId === tab.id && changeInfo.status === "complete") {
-              chrome.tabs.sendMessage(tabId, { action: "openCalendarTab" });
-              chrome.tabs.onUpdated.removeListener(listener);
-            }
-          });
-        });
-        window.close(); // Close popup
-      });
+      eventsForDay.slice(0, 3).forEach((event) => {
+        const eventElement = document.createElement("div");
+        eventElement.className = `event-dot ${event.type}`;
 
-    // Restore original view and date when popup is closed
-    window.addEventListener("unload", () => {
-      this.currentView = originalView;
-      this.currentDate = originalDate;
-    });
-  },
-};
-
-// Initialize calendar when DOM is loaded (if on newtab page)
-document.addEventListener("DOMContentLoaded", function () {
-  const calendarToggleBtn = document.getElementById("calendar-toggle-btn");
-  const calendarCard = document.getElementById("calendar-card");
-
-  if (calendarToggleBtn && calendarCard) {
-    // Add click event to toggle calendar visibility
-    calendarToggleBtn.addEventListener("click", function () {
-      if (calendarCard.style.display === "none") {
-        calendarCard.style.display = "block";
-
-        // Initialize calendar if it's the first time showing it
-        if (!calendar.initialized) {
-          calendar.init();
-          calendar.initialized = true;
-        } else {
-          // Refresh events if calendar was already initialized
-          calendar.loadEvents();
+        if (event.type === "todo" && event.priority) {
+          eventElement.classList.add(`priority-${event.priority}`);
         }
 
-        // Animate appearance and scroll to it
-        setTimeout(() => {
-          calendarCard.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      } else {
-        calendarCard.style.display = "none";
+        eventElement.dataset.id = event.id;
+        eventElement.dataset.type = event.type;
+        eventElement.title = event.title;
+
+        // Add event listener to individual event dots
+        eventElement.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering the day cell click
+          navigateToEvent(event.id, event.type);
+        });
+
+        dayEvents.appendChild(eventElement);
+      });
+
+      if (eventsForDay.length > 3) {
+        const moreElement = document.createElement("div");
+        moreElement.className = "events-more";
+        moreElement.textContent = `+${eventsForDay.length - 3}`;
+        moreElement.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering the day cell click
+          showDayEventsModal(date, eventsForDay);
+        });
+        dayEvents.appendChild(moreElement);
       }
+    }
+
+    // Add click event to day cell for navigation to day view
+    dayCell.addEventListener("click", () => {
+      currentViewDate = new Date(date);
+      calendarView = "day";
+      document.getElementById("calendar-view-selector").value = "day";
+      renderCalendar();
+    });
+
+    calendarGrid.appendChild(dayCell);
+  }
+
+  container.appendChild(calendarGrid);
+}
+
+/**
+ * Render week view calendar
+ */
+function renderWeekView(container) {
+  const weekStart = getWeekStartDate(currentViewDate);
+
+  const weekGrid = document.createElement("div");
+  weekGrid.className = "calendar-grid week-view";
+
+  // Create time column
+  const timeColumn = document.createElement("div");
+  timeColumn.className = "time-column";
+
+  for (let hour = 0; hour < 24; hour++) {
+    const timeSlot = document.createElement("div");
+    timeSlot.className = "time-slot";
+    timeSlot.textContent = formatHour(hour);
+    timeColumn.appendChild(timeSlot);
+  }
+
+  weekGrid.appendChild(timeColumn);
+
+  // Create day columns
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+
+    const dayColumn = document.createElement("div");
+    dayColumn.className = "day-column";
+
+    // Day header
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "day-header";
+
+    if (isSameDay(day, new Date())) {
+      dayHeader.classList.add("today");
+    }
+
+    dayHeader.textContent = `${dayNames[day.getDay()].substring(
+      0,
+      3
+    )} ${day.getDate()}`;
+    dayColumn.appendChild(dayHeader);
+
+    // Hours grid
+    for (let hour = 0; hour < 24; hour++) {
+      const hourCell = document.createElement("div");
+      hourCell.className = "hour-cell";
+
+      // Add events for this hour
+      const hourStart = new Date(day);
+      hourStart.setHours(hour, 0, 0, 0);
+
+      const hourEnd = new Date(day);
+      hourEnd.setHours(hour + 1, 0, 0, 0);
+
+      const events = getEventsBetween(hourStart, hourEnd);
+
+      if (events.length > 0) {
+        events.forEach((event) => {
+          const eventElement = document.createElement("div");
+          eventElement.className = `event-item ${event.type}`;
+
+          if (event.type === "todo" && event.priority) {
+            eventElement.classList.add(`priority-${event.priority}`);
+          }
+
+          eventElement.textContent = event.title;
+          eventElement.title = `${event.title} (${formatTime(event.date)})`;
+
+          eventElement.addEventListener("click", () => {
+            navigateToEvent(event.id, event.type);
+          });
+
+          hourCell.appendChild(eventElement);
+        });
+      }
+
+      dayColumn.appendChild(hourCell);
+    }
+
+    weekGrid.appendChild(dayColumn);
+  }
+
+  container.appendChild(weekGrid);
+}
+
+/**
+ * Render day view calendar
+ */
+function renderDayView(container) {
+  const day = new Date(currentViewDate);
+
+  const dayGrid = document.createElement("div");
+  dayGrid.className = "calendar-grid day-view";
+
+  // Create time column
+  const timeColumn = document.createElement("div");
+  timeColumn.className = "time-column";
+
+  for (let hour = 0; hour < 24; hour++) {
+    const timeSlot = document.createElement("div");
+    timeSlot.className = "time-slot";
+    timeSlot.textContent = formatHour(hour);
+    timeColumn.appendChild(timeSlot);
+  }
+
+  dayGrid.appendChild(timeColumn);
+
+  // Create events column
+  const eventsColumn = document.createElement("div");
+  eventsColumn.className = "events-column";
+
+  // Hours grid
+  for (let hour = 0; hour < 24; hour++) {
+    const hourCell = document.createElement("div");
+    hourCell.className = "hour-cell";
+
+    // Add events for this hour
+    const hourStart = new Date(day);
+    hourStart.setHours(hour, 0, 0, 0);
+
+    const hourEnd = new Date(day);
+    hourEnd.setHours(hour + 1, 0, 0, 0);
+
+    const events = getEventsBetween(hourStart, hourEnd);
+
+    if (events.length > 0) {
+      events.forEach((event) => {
+        const eventElement = document.createElement("div");
+        eventElement.className = `event-item ${event.type}`;
+
+        if (event.type === "todo" && event.priority) {
+          eventElement.classList.add(`priority-${event.priority}`);
+        }
+
+        eventElement.innerHTML = `
+          <div class="event-title">${event.title}</div>
+          <div class="event-time">${formatTime(event.date)}</div>
+        `;
+
+        eventElement.addEventListener("click", () => {
+          navigateToEvent(event.id, event.type);
+        });
+
+        hourCell.appendChild(eventElement);
+      });
+    }
+
+    eventsColumn.appendChild(hourCell);
+  }
+
+  dayGrid.appendChild(eventsColumn);
+  container.appendChild(dayGrid);
+}
+
+/**
+ * Show modal with events for a specific day
+ */
+function showDayEventsModal(date, events) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.id = "day-events-modal";
+
+  const dateStr = date.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const modalContent = document.createElement("div");
+  modalContent.className = "modal-content";
+
+  modalContent.innerHTML = `
+    <span class="close-modal">&times;</span>
+    <h2>Events for ${dateStr}</h2>
+    <div class="modal-body">
+      <div class="events-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="view-day-btn" class="btn-secondary">View Day</button>
+    </div>
+  `;
+
+  const eventsList = modalContent.querySelector(".events-list");
+
+  if (events.length === 0) {
+    eventsList.innerHTML = "<p>No events for this day.</p>";
+  } else {
+    events.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    events.forEach((event) => {
+      const eventItem = document.createElement("div");
+      eventItem.className = `event-item ${event.type}`;
+
+      if (event.type === "todo" && event.priority) {
+        eventItem.classList.add(`priority-${event.priority}`);
+      }
+
+      let timeStr = "";
+      if (event.date.getHours() !== 0 || event.date.getMinutes() !== 0) {
+        timeStr = event.date.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      eventItem.innerHTML = `
+        <div class="event-details">
+          <div class="event-title">${event.title}</div>
+          ${timeStr ? `<div class="event-time">${timeStr}</div>` : ""}
+          <div class="event-type">${getEventTypeName(event.type)}</div>
+        </div>
+        <div class="event-actions">
+          <button class="edit-event" data-id="${event.id}" data-type="${
+        event.type
+      }">
+            <i class="fas fa-edit"></i>
+          </button>
+        </div>
+      `;
+
+      eventItem
+        .querySelector(".edit-event")
+        .addEventListener("click", function () {
+          navigateToEvent(event.id, event.type);
+          closeAllModals();
+        });
+
+      eventsList.appendChild(eventItem);
     });
   }
 
-  // Check if we should show the calendar based on URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  if (
-    urlParams.get("showCalendar") === "true" &&
-    calendarCard &&
-    calendarToggleBtn
-  ) {
-    calendarCard.style.display = "block";
-    calendar.init();
-    calendar.initialized = true;
+  modalContent
+    .querySelector(".close-modal")
+    .addEventListener("click", closeAllModals);
 
-    setTimeout(() => {
-      calendarCard.scrollIntoView({ behavior: "smooth" });
-    }, 300);
+  modalContent
+    .querySelector("#view-day-btn")
+    .addEventListener("click", function () {
+      currentViewDate = new Date(date);
+      calendarView = "day";
+      document.getElementById("calendar-view-selector").value = "day";
+      renderCalendar();
+      closeAllModals();
+    });
+
+  modal.appendChild(modalContent);
+  document.getElementById("modal-container").appendChild(modal);
+  document.getElementById("modal-container").classList.remove("hidden");
+  modal.classList.add("active");
+}
+
+/**
+ * Navigate to a specific event in its module
+ */
+function navigateToEvent(id, type) {
+  switch (type) {
+    case "todo":
+      editTodoFromCalendar(id);
+      break;
+
+    case "reminder":
+      editReminderFromCalendar(id);
+      break;
+
+    case "timedTab":
+      const tab = timedTabs.find((t) => t.id === id);
+      if (tab) {
+        editTimedTab(id);
+      }
+      break;
   }
-});
+}
+
+/**
+ * Get events for a specific day
+ */
+function getEventsForDay(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  return calendarEvents.filter((event) => {
+    const eventDate = new Date(event.date);
+    return (
+      eventDate.getFullYear() === year &&
+      eventDate.getMonth() === month &&
+      eventDate.getDate() === day
+    );
+  });
+}
+
+/**
+ * Get events between two times
+ */
+function getEventsBetween(startTime, endTime) {
+  return calendarEvents.filter((event) => {
+    const eventTime = new Date(event.date);
+    return eventTime >= startTime && eventTime < endTime;
+  });
+}
+
+/**
+ * Update calendar events from different modules
+ */
+function updateCalendarEvents(events) {
+  if (!Array.isArray(events)) return;
+
+  events.forEach((event) => {
+    if (!event.id || !event.date || !event.title || !event.type) {
+      return;
+    }
+
+    const existingIndex = calendarEvents.findIndex(
+      (e) => e.id === event.id && e.type === event.type
+    );
+
+    if (existingIndex !== -1) {
+      calendarEvents[existingIndex] = event;
+    } else {
+      calendarEvents.push(event);
+    }
+  });
+
+  renderCalendar();
+}
+
+/**
+ * Get the start date of the week containing the given date
+ */
+function getWeekStartDate(date) {
+  const result = new Date(date);
+  const day = result.getDay();
+  result.setDate(result.getDate() - day);
+  return result;
+}
+
+/**
+ * Format a date as YYYY-MM-DD
+ */
+function formatDateString(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Format an hour for display (12-hour format)
+ */
+function formatHour(hour) {
+  if (hour === 0) return "12 AM";
+  if (hour === 12) return "12 PM";
+  return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+}
+
+/**
+ * Format a time for display
+ */
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Check if two dates are the same day
+ */
+function isSameDay(date1, date2) {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
+
+/**
+ * Get event type display name
+ */
+function getEventTypeName(type) {
+  switch (type) {
+    case "todo":
+      return "Todo";
+    case "reminder":
+      return "Reminder";
+    case "timedTab":
+      return "Scheduled Tab";
+    default:
+      return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+
+// Day name constants for calendar
+const dayNames = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];

@@ -1,0 +1,33 @@
+<!-- Calendar component for NewTab+ -->
+<section class="card" id="calendar-card" style="display: none">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-alt"></i> Calendar</h2>
+    <div class="calendar-controls">
+      <select id="calendar-view-selector">
+        <option value="month">Month</option>
+        <option value="week">Week</option>
+        <option value="day">Day</option>
+      </select>
+    </div>
+  </div>
+  <div
+    class="card-content calendar-card-content"
+    style="max-height: none; overflow: visible"
+  >
+    <div id="calendar-container" class="calendar-container">
+      <div class="calendar-header">
+        <div class="calendar-nav">
+          <button id="calendar-prev" class="calendar-nav-btn">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div id="calendar-date-display" class="calendar-date"></div>
+          <button id="calendar-next" class="calendar-nav-btn">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <button id="calendar-today" class="calendar-today-btn">Today</button>
+      </div>
+      <div id="calendar-content" class="calendar-content"></div>
+    </div>
+  </div>
+</section>

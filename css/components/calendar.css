@@ -1,0 +1,393 @@
+/**
+ * Calendar component styles for NewTab+
+ * Modern sleek version
+ */
+
+/* Calendar container */
+.calendar-container {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Calendar header */
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 8px 8px 0 0;
+}
+
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.calendar-controls select {
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+}
+
+.calendar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: capitalize;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 8px;
+}
+.calendar-today-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.calendar-today-btn:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.calendar-nav button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-nav button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.calendar-nav button:active {
+  transform: scale(0.95);
+}
+
+/* Calendar grid */
+.calendar-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  overflow: hidden;
+}
+
+.calendar-grid.month-view {
+  grid-template-rows: auto 1fr;
+}
+
+/* Week and Day views */
+.calendar-grid.week-view,
+.calendar-grid.day-view {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  height: 500px; /* Fixed height for better display */
+  overflow-y: auto;
+}
+
+.calendar-grid.day-view {
+  grid-template-columns: 60px 1fr; /* Day view has only one day column */
+}
+
+.day-column,
+.events-column {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-color);
+  overflow: hidden;
+  min-width: 100px; /* Ensure columns have minimum width */
+}
+
+.time-column {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  left: 0;
+  background-color: var(--card-bg-color);
+  z-index: 2;
+  border-right: 1px solid var(--border-color);
+}
+
+.time-slot {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+  padding-right: 8px;
+  padding-left: 4px;
+  text-align: right;
+  position: relative;
+}
+
+.hour-cell {
+  height: 60px;
+  border-bottom: 1px solid var(--border-color);
+  padding: 2px 4px;
+  position: relative;
+  min-width: 0;
+}
+
+.day-header {
+  padding: 10px;
+  text-align: center;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background-color: var(--hover-bg-color);
+  z-index: 1;
+}
+
+.day-header.today {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Day name header items */
+.day-name {
+  text-align: center;
+  padding: 12px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary-color);
+  background-color: var(--hover-bg-color);
+  border-bottom: 1px solid var(--border-color);
+  text-transform: uppercase;
+}
+
+/* Calendar day cell */
+.calendar-day {
+  min-height: 100px;
+  padding: 5px;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.calendar-day:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.calendar-day:last-child {
+  border-right: none;
+}
+
+.calendar-day.empty {
+  background-color: var(--hover-bg-color);
+  opacity: 0.4;
+}
+
+.calendar-day.today {
+  background-color: rgba(var(--accent-color-rgb), 0.05);
+}
+
+.calendar-day.has-events {
+  cursor: pointer;
+}
+
+/* Day number - universal styling that works for both implementations */
+.day-number {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-color);
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.calendar-day.today .day-number,
+.day-cell.today .day-number {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(var(--primary-color-rgb), 0.3);
+}
+
+.day-number.faded {
+  color: var(--text-secondary-color);
+  opacity: 0.5;
+}
+
+/* Event indicators in month view */
+.day-events {
+  margin-top: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 2px;
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.event-dot:hover {
+  transform: scale(1.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.event-dot.todo {
+  background-color: var(--primary-color);
+}
+
+.event-dot.reminder {
+  background-color: var(--accent-color);
+}
+
+.event-dot.timedTab {
+  background-color: var(--success-color);
+}
+
+.event-dot.priority-high {
+  background-color: var(--priority-high);
+}
+
+.event-dot.priority-medium {
+  background-color: var(--priority-medium);
+}
+
+.event-dot.priority-low {
+  background-color: var(--priority-low);
+}
+
+.events-more {
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  margin-top: 2px;
+  text-align: right;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.events-more:hover {
+  color: var(--text-color);
+  background-color: var(--hover-bg-color);
+}
+
+/* Event items in day/week view */
+.event-item {
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.event-item:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.event-item::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.event-item.todo {
+  background-color: var(--primary-color);
+}
+
+.event-item.reminder {
+  background-color: var(--accent-color);
+}
+
+.event-item.timedTab {
+  background-color: var(--success-color);
+}
+
+.event-item.todo-high,
+.event-item.priority-high {
+  background-color: var(--priority-high);
+}
+
+.event-item.todo-medium,
+.event-item.priority-medium {
+  background-color: var(--priority-medium);
+}
+
+.event-item.todo-low,
+.event-item.priority-low {
+  background-color: var(--priority-low);
+}
+
+.event-title {
+  font-weight: 500;
+}
+
+.event-time {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+/* Other month styling */
+.other-month {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .other-month {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Current day */
+.current-day {
+  background-color: rgba(var(--accent-color-rgb), 0.1);
+}
