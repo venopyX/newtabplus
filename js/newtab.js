@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize modal functionality
   initModals();
 
+  // Initialize theme functionality
+  initTheme();
+
   // Load all modules
   initializeTimedTabs();
   initializeNotes();
@@ -197,5 +200,85 @@ function showNotification(title, message, options = {}) {
 
     // Auto close after 10 seconds if not specified
     setTimeout(() => notification.close(), options.timeout || 10000);
+  }
+}
+
+// Initialize theme functionality
+function initTheme() {
+  const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const themeSelect = document.getElementById("theme-select");
+
+  // Load saved theme or use system preference
+  loadThemePreference();
+
+  // Update icon based on current theme
+  updateThemeIcon();
+
+  // Add event listeners for theme switching
+  themeToggleBtn.addEventListener("click", function () {
+    const currentTheme =
+      document.documentElement.getAttribute("data-theme") || "light";
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+
+    setTheme(newTheme);
+    themeSelect.value = newTheme;
+  });
+
+  themeSelect.addEventListener("change", function () {
+    setTheme(this.value);
+  });
+
+  // Listen for system preference changes
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (e) => {
+      if (themeSelect.value === "system") {
+        setTheme("system");
+      }
+    });
+}
+
+// Load saved theme preference or use system default
+function loadThemePreference() {
+  chrome.storage.sync.get("theme", function (data) {
+    const savedTheme = data.theme || "system";
+    const themeSelect = document.getElementById("theme-select");
+    themeSelect.value = savedTheme;
+    setTheme(savedTheme);
+  });
+}
+
+// Set the theme and save preference
+function setTheme(theme) {
+  let appliedTheme = theme;
+
+  // If system preference, check what the system is using
+  if (theme === "system") {
+    appliedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+
+  // Apply theme to HTML element
+  document.documentElement.setAttribute("data-theme", appliedTheme);
+
+  // Save preference
+  chrome.storage.sync.set({ theme: theme });
+
+  // Update icon
+  updateThemeIcon();
+}
+
+// Update the theme toggle icon based on current theme
+function updateThemeIcon() {
+  const themeIcon = document.querySelector("#theme-toggle-btn i");
+  const currentTheme = document.documentElement.getAttribute("data-theme");
+
+  if (currentTheme === "dark") {
+    themeIcon.classList.remove("fa-moon");
+    themeIcon.classList.add("fa-sun");
+  } else {
+    themeIcon.classList.remove("fa-sun");
+    themeIcon.classList.add("fa-moon");
   }
 }
