@@ -9,6 +9,15 @@ document.addEventListener("DOMContentLoaded", function () {
       window.close();
     });
 
+  // View calendar
+  document
+    .getElementById("view-calendar")
+    .addEventListener("click", function () {
+      // Navigate to newtab page with calendar parameter
+      chrome.tabs.create({ url: "chrome://newtab/?showCalendar=true" });
+      window.close();
+    });
+
   // Add tab timer
   document
     .getElementById("add-tab-timer")
