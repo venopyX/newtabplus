@@ -1,37 +1,36 @@
-// To-Do List functionality
-let todos = [];
-let todoFilter = "incomplete"; // Changed default from "all" to "incomplete"
+/**
+ * Todos module for NewTab+
+ */
 
+let todos = [];
+let todoFilter = "incomplete";
+
+/**
+ * Initialize todos functionality
+ */
 function initializeTodos() {
-  // Add event listeners
   document.getElementById("add-todo").addEventListener("click", () => {
     openModal("todo-modal");
   });
 
-  // Filter selector
-  document
-    .querySelectorAll("#todo-filters button[data-filter]")
-    .forEach((button) => {
-      button.addEventListener("click", function () {
-        const filter = this.dataset.filter;
-        setActiveTodoFilter(filter);
-      });
-    });
-
-  // Form submission handling
   document.getElementById("todo-form").addEventListener("submit", function (e) {
     e.preventDefault();
     saveTodo();
   });
 
-  // Load saved todos
-  loadTodos();
+  // Fix: Update filter selector to match component HTML structure
+  document.querySelectorAll("#todo-filters button").forEach((button) => {
+    button.addEventListener("click", function () {
+      setTodoFilter(this.dataset.filter);
+    });
+  });
 
-  // Set up timer to check overdue todos every minute
-  setInterval(checkOverdueTodos, 60000);
+  loadTodos();
 }
 
-// Load todos from storage
+/**
+ * Load todos from storage
+ */
 function loadTodos() {
   chrome.storage.sync.get("todos", function (data) {
     if (data.todos) {
@@ -41,7 +40,9 @@ function loadTodos() {
   });
 }
 
-// Save a new or edited todo
+/**
+ * Save a new or edited todo
+ */
 function saveTodo() {
   const form = document.getElementById("todo-form");
   const text = document.getElementById("todo-text").value;
@@ -49,37 +50,29 @@ function saveTodo() {
   const priority = document.getElementById("todo-priority").value;
   const recurring = document.getElementById("todo-recurring").value;
 
-  // Parse due date if provided
-  let dueDate = null;
-  if (dueDateInput) {
-    dueDate = new Date(dueDateInput).getTime();
-  }
-
-  // Check if editing or creating new
+  const dueDate = dueDateInput ? new Date(dueDateInput).getTime() : null;
   const editMode = form.dataset.mode === "edit";
   const editId = form.dataset.editId;
 
   if (editMode && editId) {
-    // Update existing todo
     const index = todos.findIndex((todo) => todo.id === editId);
     if (index !== -1) {
       todos[index] = {
         ...todos[index],
-        text,
-        dueDate,
-        priority,
-        recurring,
+        text: text,
+        dueDate: dueDate,
+        priority: priority,
+        recurring: recurring,
         updated: Date.now(),
       };
     }
   } else {
-    // Create new todo
     const newTodo = {
       id: generateId(),
-      text,
-      dueDate,
-      priority,
-      recurring,
+      text: text,
+      dueDate: dueDate,
+      priority: priority,
+      recurring: recurring !== "none" ? recurring : null,
       completed: false,
       created: Date.now(),
       updated: Date.now(),
@@ -88,313 +81,351 @@ function saveTodo() {
     todos.push(newTodo);
   }
 
-  // Save to storage
   chrome.storage.sync.set({ todos: todos }, function () {
-    // Reset form and handlers
     form.reset();
     form.dataset.mode = "add";
     delete form.dataset.editId;
 
-    // Close modal
     closeAllModals();
-
-    // Render updated list
     renderTodos();
+    updateCalendarWithTodos();
   });
 }
 
-// Set active filter
-function setActiveTodoFilter(filter) {
-  // Update current filter
+/**
+ * Set the todo filter
+ */
+function setTodoFilter(filter) {
   todoFilter = filter;
 
-  // Update active button
-  const buttons = document.querySelectorAll("#todo-filters button");
-  buttons.forEach((button) => {
+  const filterButtons = document.querySelectorAll("#todo-filters button");
+  filterButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.filter === filter);
   });
 
-  // Render filtered todos
   renderTodos();
 }
 
-// Render todos with current filter
+/**
+ * Render filtered todos in the UI
+ */
 function renderTodos() {
   const container = document.getElementById("todo-list");
+  if (!container) return;
+
   container.innerHTML = "";
 
-  // Apply filters
-  let filteredTodos = todos;
-  const now = new Date();
-  const startOfDay = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  ).getTime();
-  const endOfDay = startOfDay + 86400000; // 24 hours in milliseconds
-
-  switch (todoFilter) {
-    case "today":
-      filteredTodos = todos.filter(
-        (todo) =>
-          todo.dueDate && todo.dueDate >= startOfDay && todo.dueDate < endOfDay
-      );
-      break;
-    case "upcoming":
-      filteredTodos = todos.filter(
-        (todo) => todo.dueDate && todo.dueDate >= endOfDay
-      );
-      break;
-    case "completed":
-      filteredTodos = todos.filter((todo) => todo.completed);
-      break;
-    case "incomplete":
-      // New filter to show only incomplete tasks
-      filteredTodos = todos.filter((todo) => !todo.completed);
-      break;
-    case "all":
-    default:
-      // All shows all tasks, both completed and incomplete
-      filteredTodos = todos;
-      break;
-  }
-
-  // Sort: first by completion, then by due date (if present), then by priority
-  filteredTodos.sort((a, b) => {
-    // First sort by completion status
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
-    }
-
-    // Then sort by due date (if both have it)
-    if (a.dueDate && b.dueDate) {
-      return a.dueDate - b.dueDate;
-    } else if (a.dueDate) {
-      return -1; // a has due date, b doesn't
-    } else if (b.dueDate) {
-      return 1; // b has due date, a doesn't
-    }
-
-    // Then sort by priority
-    const priorityValues = { high: 0, medium: 1, low: 2 };
-    return priorityValues[a.priority] - priorityValues[b.priority];
-  });
+  const filteredTodos = filterTodos(todos, todoFilter);
+  sortTodos(filteredTodos);
 
   if (filteredTodos.length === 0) {
-    container.innerHTML =
-      '<p class="empty-list">No tasks found. Click the + button to add one.</p>';
+    const message = getEmptyMessage(todoFilter);
+    container.innerHTML = `<p class="empty-list">${message}</p>`;
     return;
   }
 
-  // Create todo elements
   filteredTodos.forEach((todo) => {
     const todoElement = document.createElement("div");
-    todoElement.className = `todo-item${todo.completed ? " completed" : ""}`;
+    todoElement.className = "todo-item";
+    todoElement.classList.add(`priority-${todo.priority}`);
+    if (todo.completed) todoElement.classList.add("completed");
+
     todoElement.dataset.id = todo.id;
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "todo-checkbox";
-    checkbox.checked = todo.completed;
+    const dueText = todo.dueDate
+      ? `<span class="due-date">${formatDate(todo.dueDate)}</span>`
+      : "";
+    const recurringText = todo.recurring
+      ? `<span class="todo-recurring">${getRecurringText(
+          todo.recurring
+        )}</span>`
+      : "";
 
-    // Toggle completion status when checkbox is clicked
-    checkbox.addEventListener("change", () => toggleTodoCompletion(todo.id));
-
-    const todoHTML = `
-      <div class="todo-content">
-        <div class="todo-text">${todo.text}</div>
-        <div class="todo-meta">
-          ${
-            todo.dueDate
-              ? `<span class="todo-due-date">${formatDate(todo.dueDate)}</span>`
-              : ""
-          }
-          ${
-            todo.recurring !== "none"
-              ? `<span class="todo-recurring">${todo.recurring}</span>`
-              : ""
-          }
-          <span class="todo-priority priority-${todo.priority}">${
+    const priorityText = `<span class="priority-tag priority-${
       todo.priority
-    }</span>
+    }">${
+      todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)
+    }</span>`;
+
+    todoElement.innerHTML = `
+      <label class="todo-checkbox">
+        <input type="checkbox" ${todo.completed ? "checked" : ""}>
+        <span class="checkmark"></span>
+      </label>
+      <div class="todo-content">
+        <span class="todo-text">${todo.text}</span>
+        <div class="todo-meta">
+          ${priorityText}
+          ${dueText}
+          ${recurringText}
         </div>
       </div>
       <div class="todo-actions">
-        <button class="edit-todo" data-id="${
-          todo.id
-        }" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="delete-todo" data-id="${
-          todo.id
-        }" title="Delete"><i class="fas fa-trash"></i></button>
+        <button class="edit-todo" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="delete-todo" title="Delete"><i class="fas fa-trash"></i></button>
       </div>
     `;
 
-    todoElement.appendChild(checkbox);
-    todoElement.insertAdjacentHTML("beforeend", todoHTML);
-
-    // Add event listeners
     todoElement
-      .querySelector(".edit-todo")
-      .addEventListener("click", () => editTodo(todo.id));
-    todoElement
-      .querySelector(".delete-todo")
-      .addEventListener("click", () => deleteTodo(todo.id));
+      .querySelector("input[type=checkbox]")
+      .addEventListener("change", function () {
+        toggleTodoCompletion(todo.id);
+      });
 
-    // Append to container
+    todoElement.querySelector(".edit-todo").addEventListener("click", () => {
+      editTodo(todo.id);
+    });
+
+    todoElement.querySelector(".delete-todo").addEventListener("click", () => {
+      deleteTodo(todo.id);
+    });
+
     container.appendChild(todoElement);
   });
 }
 
-// Toggle todo completion status
-function toggleTodoCompletion(id) {
-  const index = todos.findIndex((todo) => todo.id === id);
-  if (index === -1) return;
-
-  // Store previous completion state to check if we're completing (not uncompleting)
-  const wasCompletedBefore = todos[index].completed;
-
-  // Toggle completed status
-  todos[index].completed = !todos[index].completed;
-  todos[index].updated = Date.now();
-
-  // Only create a new instance if:
-  // 1. Task was NOT completed before (we're marking it complete now)
-  // 2. Task is now marked as completed
-  // 3. Task is recurring
-  if (
-    !wasCompletedBefore &&
-    todos[index].completed &&
-    todos[index].recurring !== "none"
-  ) {
-    const original = todos[index];
-
-    // Calculate next occurrence based on recurrence pattern
-    const nextDueDate = calculateNextDueDate(
-      original.dueDate,
-      original.recurring
-    );
-
-    if (nextDueDate) {
-      // Create new recurring instance
-      const newTodo = {
-        id: generateId(),
-        text: original.text,
-        dueDate: nextDueDate,
-        priority: original.priority,
-        recurring: original.recurring,
-        completed: false,
-        created: Date.now(),
-        updated: Date.now(),
-      };
-
-      todos.push(newTodo);
-    }
+/**
+ * Get empty list message based on filter
+ */
+function getEmptyMessage(filter) {
+  switch (filter) {
+    case "incomplete":
+      return "No incomplete todos.";
+    case "completed":
+      return "No completed todos.";
+    case "today":
+      return "No todos due today.";
+    case "upcoming":
+      return "No upcoming todos.";
+    default:
+      return "No todos. Click the + button to add one.";
   }
+}
 
-  // Save to storage
-  chrome.storage.sync.set({ todos: todos }, function () {
-    renderTodos();
+/**
+ * Filter todos based on the current filter
+ */
+function filterTodos(todoList, filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  switch (filter) {
+    case "incomplete":
+      return todoList.filter((todo) => !todo.completed);
+    case "completed":
+      return todoList.filter((todo) => todo.completed);
+    case "today":
+      return todoList.filter((todo) => {
+        if (!todo.dueDate) return false;
+        const dueDate = new Date(todo.dueDate);
+        return dueDate >= today && dueDate < tomorrow && !todo.completed;
+      });
+    case "upcoming":
+      return todoList.filter((todo) => {
+        if (!todo.dueDate) return false;
+        const dueDate = new Date(todo.dueDate);
+        return dueDate >= tomorrow && !todo.completed;
+      });
+    default:
+      return todoList;
+  }
+}
+
+/**
+ * Sort todos by priority and due date
+ */
+function sortTodos(todoList) {
+  const priorityValues = { high: 1, medium: 2, low: 3 };
+
+  todoList.sort((a, b) => {
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+
+    if (a.priority !== b.priority) {
+      return priorityValues[a.priority] - priorityValues[b.priority];
+    }
+
+    if (a.dueDate && b.dueDate) {
+      return a.dueDate - b.dueDate;
+    }
+
+    if (a.dueDate) return -1;
+    if (b.dueDate) return 1;
+
+    return b.created - a.created;
   });
 }
 
-// Calculate next occurrence date based on recurrence pattern
-function calculateNextDueDate(currentDueDate, recurring) {
-  if (!currentDueDate) return null;
+/**
+ * Toggle the completion state of a todo
+ */
+function toggleTodoCompletion(id) {
+  const todo = todos.find((t) => t.id === id);
+  if (!todo) return;
 
-  const date = new Date(currentDueDate);
+  todo.completed = !todo.completed;
+  todo.updated = Date.now();
 
-  switch (recurring) {
+  if (todo.completed && todo.recurring) {
+    createNextRecurringTodo(todo);
+  }
+
+  chrome.storage.sync.set({ todos: todos }, function () {
+    renderTodos();
+    updateCalendarWithTodos();
+  });
+}
+
+/**
+ * Create a new recurring todo after completion
+ */
+function createNextRecurringTodo(completedTodo) {
+  if (!completedTodo.dueDate) return;
+
+  const nextDueDate = calculateNextDueDate(
+    new Date(completedTodo.dueDate),
+    completedTodo.recurring
+  );
+
+  if (!nextDueDate) return;
+
+  const newTodo = {
+    id: generateId(),
+    text: completedTodo.text,
+    dueDate: nextDueDate.getTime(),
+    priority: completedTodo.priority,
+    recurring: completedTodo.recurring,
+    completed: false,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+
+  todos.push(newTodo);
+}
+
+/**
+ * Calculate the next due date based on recurrence pattern
+ */
+function calculateNextDueDate(currentDate, recurrence) {
+  const nextDate = new Date(currentDate);
+
+  switch (recurrence) {
     case "daily":
-      date.setDate(date.getDate() + 1);
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case "weekdays":
+      let addDays = 1;
+      if (nextDate.getDay() === 5) addDays = 3;
+      if (nextDate.getDay() === 6) addDays = 2;
+      nextDate.setDate(nextDate.getDate() + addDays);
       break;
     case "weekly":
-      date.setDate(date.getDate() + 7);
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case "biweekly":
+      nextDate.setDate(nextDate.getDate() + 14);
       break;
     case "monthly":
-      date.setMonth(date.getMonth() + 1);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    case "quarterly":
+      nextDate.setMonth(nextDate.getMonth() + 3);
+      break;
+    case "yearly":
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
       break;
     default:
       return null;
   }
 
-  return date.getTime();
+  return nextDate;
 }
 
-// Edit a todo
+/**
+ * Convert recurring pattern to human readable text
+ */
+function getRecurringText(recurring) {
+  switch (recurring) {
+    case "daily":
+      return "Repeats daily";
+    case "weekdays":
+      return "Repeats on weekdays";
+    case "weekly":
+      return "Repeats weekly";
+    case "biweekly":
+      return "Repeats every 2 weeks";
+    case "monthly":
+      return "Repeats monthly";
+    case "quarterly":
+      return "Repeats quarterly";
+    case "yearly":
+      return "Repeats yearly";
+    default:
+      return "";
+  }
+}
+
+/**
+ * Edit a todo
+ */
 function editTodo(id) {
-  const todo = todos.find((todo) => todo.id === id);
+  const todo = todos.find((t) => t.id === id);
   if (!todo) return;
 
-  // Populate form
   document.getElementById("todo-text").value = todo.text;
 
-  // Format date for datetime-local input
   if (todo.dueDate) {
-    const date = new Date(todo.dueDate);
-    const formattedDate = date.toISOString().slice(0, 16); // Format: YYYY-MM-DDThh:mm
-    document.getElementById("todo-duedate").value = formattedDate;
+    document.getElementById("todo-duedate").value = formatDateForInput(
+      todo.dueDate
+    );
   } else {
     document.getElementById("todo-duedate").value = "";
   }
 
-  // Set other fields
-  document.getElementById("todo-priority").value = todo.priority;
+  document.getElementById("todo-priority").value = todo.priority || "medium";
   document.getElementById("todo-recurring").value = todo.recurring || "none";
 
-  // Set form to edit mode
   const form = document.getElementById("todo-form");
   form.dataset.mode = "edit";
   form.dataset.editId = id;
 
-  // Open modal
   openModal("todo-modal");
 }
 
-// Delete a todo
+/**
+ * Delete a todo
+ */
 function deleteTodo(id) {
-  if (confirm("Are you sure you want to delete this task?")) {
-    todos = todos.filter((todo) => todo.id !== id);
-
-    // Save to storage
-    chrome.storage.sync.set({ todos: todos }, function () {
-      renderTodos();
-    });
+  if (!confirm("Are you sure you want to delete this todo?")) {
+    return;
   }
+
+  todos = todos.filter((todo) => todo.id !== id);
+
+  chrome.storage.sync.set({ todos: todos }, function () {
+    renderTodos();
+    updateCalendarWithTodos();
+  });
 }
 
-// Check for overdue todos and send notifications if needed
-function checkOverdueTodos() {
-  const now = Date.now();
+/**
+ * Update calendar with todo due dates
+ */
+function updateCalendarWithTodos() {
+  const dueDates = todos
+    .filter((todo) => todo.dueDate && !todo.completed)
+    .map((todo) => ({
+      id: todo.id,
+      date: new Date(todo.dueDate),
+      title: todo.text,
+      type: "todo",
+      priority: todo.priority || "medium",
+    }));
 
-  // Get todos that are due in the past 5 minutes and not completed
-  const overdueTodos = todos.filter(
-    (todo) =>
-      !todo.completed &&
-      todo.dueDate &&
-      todo.dueDate <= now &&
-      todo.dueDate > now - 300000 && // 5 minutes in milliseconds
-      !todo.notified // Check if notification has been sent
-  );
-
-  if (overdueTodos.length > 0) {
-    // Mark as notified
-    overdueTodos.forEach((todo) => {
-      const index = todos.findIndex((t) => t.id === todo.id);
-      if (index !== -1) {
-        todos[index].notified = true;
-      }
-
-      // Show notification
-      showNotification("Task Due", todo.text, {
-        onClick: function () {
-          window.focus();
-          setActiveTodoFilter("today");
-          this.close();
-        },
-      });
-    });
-
-    // Save updated todos
-    chrome.storage.sync.set({ todos: todos });
+  if (typeof updateCalendarEvents === "function") {
+    updateCalendarEvents(dueDates);
   }
 }

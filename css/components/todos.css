@@ -1,0 +1,259 @@
+/**
+ * Todo component styles for NewTab+
+ */
+
+/* Filter controls */
+#todo-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+#todo-filters button {
+  padding: 6px 12px;
+  background: var(--filter-bg-color);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+#todo-filters button:hover {
+  background: rgba(var(--primary-color-rgb), 0.1);
+}
+
+#todo-filters button.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 5px rgba(var(--primary-color-rgb), 0.3);
+}
+
+/* Todo items */
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background-color: var(--card-bg-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.todo-item:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Priority indicators as side borders with gradients */
+.todo-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 2px 0 0 2px;
+}
+
+.todo-item.priority-low::before {
+  background: var(--priority-low);
+  box-shadow: 0 0 8px rgba(var(--priority-low-rgb), 0.4);
+}
+
+.todo-item.priority-medium::before {
+  background: var(--priority-medium);
+  box-shadow: 0 0 8px rgba(var(--priority-medium-rgb), 0.4);
+}
+
+.todo-item.priority-high::before {
+  background: var(--priority-high);
+  box-shadow: 0 0 8px rgba(var(--priority-high-rgb), 0.4);
+}
+
+/* Checkbox styling */
+.todo-checkbox {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.todo-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: transparent;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.todo-checkbox:hover input ~ .checkmark {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.todo-checkbox input:checked ~ .checkmark {
+  background-color: var(--primary-color);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.todo-checkbox input:checked ~ .checkmark:after {
+  display: block;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Todo content */
+.todo-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.todo-item.completed .todo-text {
+  text-decoration: line-through;
+  color: var(--text-secondary-color);
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+/* Task metadata */
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.due-date,
+.todo-recurring {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: var(--filter-bg-color);
+  line-height: 1.5;
+}
+
+.due-date::before {
+  content: "\f073";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  margin-right: 5px;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.todo-recurring::before {
+  content: "\f2f1";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  margin-right: 5px;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Priority tags */
+.priority-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.priority-tag.priority-low {
+  background-color: rgba(var(--priority-low-rgb), 0.15);
+  color: var(--priority-low);
+}
+
+.priority-tag.priority-medium {
+  background-color: rgba(var(--priority-medium-rgb), 0.15);
+  color: var(--priority-medium);
+}
+
+.priority-tag.priority-high {
+  background-color: rgba(var(--priority-high-rgb), 0.15);
+  color: var(--priority-high);
+}
+
+/* Todo actions */
+.todo-actions {
+  display: flex;
+  gap: 5px;
+  margin-left: 5px;
+}
+
+.todo-actions button {
+  background: none;
+  border: none;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.todo-actions button:hover {
+  color: var(--primary-color);
+  background-color: var(--hover-bg-color);
+}
+
+.todo-actions button.edit-todo:hover {
+  color: var(--accent-color);
+}
+
+.todo-actions button.delete-todo:hover {
+  color: var(--priority-high);
+}
+
+/* Empty state */
+.empty-list {
+  text-align: center;
+  color: var(--text-secondary-color);
+  padding: 20px;
+  font-style: italic;
+}
