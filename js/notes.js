@@ -218,10 +218,35 @@ function renderFilteredNotes(filteredNotes) {
         <span class="note-category">${note.category}</span>
       </div>
       <div class="note-preview">${note.content}</div>
+      <div class="note-actions">
+        <button class="edit-btn" title="Edit Note">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="delete-btn" title="Delete Note">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
     `;
 
-    // Open note modal when clicked
-    noteElement.addEventListener("click", () => openNote(note.id));
+    // Open note view modal when clicked on the main content
+    noteElement
+      .querySelector(".note-preview")
+      .addEventListener("click", () => viewNote(note.id));
+    noteElement
+      .querySelector(".note-title")
+      .addEventListener("click", () => viewNote(note.id));
+
+    // Edit button handler
+    noteElement.querySelector(".edit-btn").addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent triggering the note view
+      openNote(note.id);
+    });
+
+    // Delete button handler
+    noteElement.querySelector(".delete-btn").addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent triggering the note view
+      deleteNote(note.id);
+    });
 
     // Append to container
     container.appendChild(noteElement);
@@ -297,4 +322,56 @@ function openNote(id) {
 
   // Open modal
   openModal("note-modal");
+}
+
+// View a note in the note view modal
+function viewNote(id) {
+  const note = notes.find((note) => note.id === id);
+  if (!note) return;
+
+  // Populate the note view modal
+  document.getElementById("note-view-title").textContent = note.title;
+  document.getElementById("note-view-category").textContent = note.category;
+  document.getElementById("note-view-date").textContent = formatDate(
+    note.updated
+  );
+
+  // For now just display the content as is - later this will be enhanced with markdown parsing
+  document.getElementById("note-view-content").innerHTML = note.content;
+
+  // Set up the edit button to open the edit form
+  document
+    .getElementById("note-view-edit")
+    .addEventListener("click", function () {
+      closeAllModals(); // Close the view modal
+      setTimeout(() => openNote(id), 100); // Open the edit modal with a slight delay
+    });
+
+  // Open the view modal
+  openModal("note-view-modal");
+}
+
+// Delete a note after confirmation
+function deleteNote(id) {
+  if (!confirm("Are you sure you want to delete this note?")) {
+    return;
+  }
+
+  // Find note index
+  const noteIndex = notes.findIndex((note) => note.id === id);
+  if (noteIndex === -1) return;
+
+  // Remove from array
+  notes.splice(noteIndex, 1);
+
+  // Save to storage
+  chrome.storage.sync.set({ notes: notes }, function () {
+    // Render updated list
+    renderNotes();
+
+    // Show feedback
+    showNotification("Note Deleted", "The note was successfully deleted", {
+      timeout: 3000,
+    });
+  });
 }
