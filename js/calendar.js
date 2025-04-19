@@ -61,6 +61,7 @@ let calendar = {
                   ? new Date(todo.dueDate)
                   : new Date(parseInt(todo.dueDate));
 
+              // Add the actual todo to calendar events
               this.events.push({
                 id: todo.id,
                 title: todo.text,
@@ -68,8 +69,14 @@ let calendar = {
                 end: new Date(dueDate.getTime() + 1800000), // Add 30 minutes for display
                 type: "todo",
                 priority: todo.priority,
+                recurring: todo.recurring || "none",
                 color: color,
               });
+
+              // If task is recurring, generate additional instances for the calendar view
+              if (todo.recurring && todo.recurring !== "none") {
+                this.generateRecurringEvents(todo, dueDate, color, 12); // Generate next 12 occurrences
+              }
             }
           });
         }
@@ -85,6 +92,7 @@ let calendar = {
                     ? new Date(reminder.scheduledTime)
                     : new Date(parseInt(reminder.scheduledTime));
 
+                // Add the base reminder
                 this.events.push({
                   id: reminder.id,
                   title: reminder.title,
@@ -92,9 +100,19 @@ let calendar = {
                   start: scheduledTime,
                   end: new Date(scheduledTime.getTime() + 1800000), // Add 30 minutes
                   type: "reminder",
-                  recurring: reminder.recurring,
+                  recurring: reminder.recurring || "none",
                   color: "#5b83c0", // Use primary color for reminders
                 });
+
+                // If reminder is recurring, generate additional instances for the calendar
+                if (reminder.recurring && reminder.recurring !== "none") {
+                  this.generateRecurringEvents(
+                    reminder,
+                    scheduledTime,
+                    "#5b83c0",
+                    12
+                  );
+                }
               }
             });
           }
@@ -110,6 +128,55 @@ let calendar = {
         });
       });
     });
+  },
+
+  // Generate recurring instances of events for the calendar view
+  generateRecurringEvents: function (item, startDate, color, count) {
+    if (!startDate || !item.recurring || item.recurring === "none") return;
+
+    // Clone the start date to avoid modifying the original
+    let currentDate = new Date(startDate.getTime());
+    let nextDate;
+
+    // Generate future occurrences
+    for (let i = 0; i < count; i++) {
+      // Calculate next occurrence based on recurrence pattern
+      switch (item.recurring) {
+        case "daily":
+          nextDate = new Date(currentDate.getTime());
+          nextDate.setDate(nextDate.getDate() + 1);
+          break;
+        case "weekly":
+          nextDate = new Date(currentDate.getTime());
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case "monthly":
+          nextDate = new Date(currentDate.getTime());
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+        default:
+          continue; // Skip if not a valid recurring pattern
+      }
+
+      // Create a virtual recurring event instance for the calendar
+      this.events.push({
+        id: `${item.id}-recurring-${i}`, // Create unique ID for each instance
+        title: item.text || item.title,
+        start: nextDate,
+        end: new Date(nextDate.getTime() + 1800000), // Add 30 minutes
+        type: item.dueDate ? "todo" : "reminder", // Determine type
+        priority: item.priority,
+        recurring: item.recurring,
+        description: item.message,
+        isRecurring: true, // Mark as recurring instance
+        parentId: item.id, // Reference to original
+        color: color,
+        virtualEvent: true, // Mark as virtual for special handling
+      });
+
+      // Update current date for next iteration
+      currentDate = nextDate;
+    }
   },
 
   // Setup event listeners for calendar navigation and view switching
