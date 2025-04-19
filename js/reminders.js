@@ -1,13 +1,18 @@
-// Reminders functionality
+/**
+ * Reminders module for NewTab+
+ * Handles reminders creation, notification management and scheduling
+ */
+
 let reminders = [];
 
+/**
+ * Initialize reminders functionality
+ */
 function initializeReminders() {
-  // Add event listeners
   document.getElementById("add-reminder").addEventListener("click", () => {
     openModal("reminder-modal");
   });
 
-  // Form submission handling
   document
     .getElementById("reminder-form")
     .addEventListener("submit", function (e) {
@@ -15,7 +20,6 @@ function initializeReminders() {
       saveReminder();
     });
 
-  // Show/hide URL input based on action type
   document
     .getElementById("reminder-action")
     .addEventListener("change", function () {
@@ -25,15 +29,14 @@ function initializeReminders() {
       urlContainer.style.display = this.value === "open-tab" ? "block" : "none";
     });
 
-  // Load saved reminders
   loadReminders();
-
-  // Check for reminders that need to be triggered
-  setInterval(checkReminders, 30000); // Check every 30 seconds
-  checkReminders(); // Also check on page load
+  setInterval(checkReminders, 60000);
+  checkReminders();
 }
 
-// Load reminders from storage
+/**
+ * Load reminders from storage
+ */
 function loadReminders() {
   chrome.storage.sync.get("reminders", function (data) {
     if (data.reminders) {
@@ -43,7 +46,9 @@ function loadReminders() {
   });
 }
 
-// Save a new or edited reminder
+/**
+ * Save a new or edited reminder
+ */
 function saveReminder() {
   const form = document.getElementById("reminder-form");
   const title = document.getElementById("reminder-title").value;
@@ -51,56 +56,52 @@ function saveReminder() {
   const timeInput = document.getElementById("reminder-time").value;
   const recurring = document.getElementById("reminder-recurring").value;
   const action = document.getElementById("reminder-action").value;
-  let tabUrl = "";
+  const url =
+    action === "open-tab"
+      ? document.getElementById("reminder-tab-url").value
+      : null;
 
-  if (action === "open-tab") {
-    tabUrl = document.getElementById("reminder-tab-url").value;
-
-    // Validate URL
+  if (action === "open-tab" && url) {
     try {
-      new URL(tabUrl);
+      new URL(url);
     } catch (e) {
       alert("Please enter a valid URL");
       return;
     }
   }
 
-  // Validate time (must be in the future)
-  const scheduledTime = new Date(timeInput).getTime();
-  if (scheduledTime <= Date.now() && recurring === "none") {
+  const time = new Date(timeInput).getTime();
+  if (time <= Date.now()) {
     alert("Please select a future date and time");
     return;
   }
 
-  // Check if editing or creating new
   const editMode = form.dataset.mode === "edit";
   const editId = form.dataset.editId;
 
   if (editMode && editId) {
-    // Update existing reminder
     const index = reminders.findIndex((reminder) => reminder.id === editId);
     if (index !== -1) {
       reminders[index] = {
         ...reminders[index],
         title,
         message,
-        scheduledTime,
-        recurring,
+        time,
+        recurring: recurring !== "none" ? recurring : null,
         action,
-        tabUrl: action === "open-tab" ? tabUrl : "",
+        url: action === "open-tab" ? url : null,
         updated: Date.now(),
       };
     }
   } else {
-    // Create new reminder
     const newReminder = {
       id: generateId(),
       title,
       message,
-      scheduledTime,
-      recurring,
+      time,
+      recurring: recurring !== "none" ? recurring : null,
       action,
-      tabUrl: action === "open-tab" ? tabUrl : "",
+      url: action === "open-tab" ? url : null,
       created: Date.now(),
       updated: Date.now(),
     };
@@ -108,39 +109,36 @@ function saveReminder() {
     reminders.push(newReminder);
   }
 
-  // Save to storage
+  reminders.sort((a, b) => a.time - b.time);
+
   chrome.storage.sync.set({ reminders: reminders }, function () {
-    // Reset form and handlers
     form.reset();
     form.dataset.mode = "add";
     delete form.dataset.editId;
-    document.getElementById("reminder-tab-url-container").style.display =
-      "none";
 
-    // Close modal
     closeAllModals();
-
-    // Render updated list
     renderReminders();
+    updateCalendarWithReminders();
+
+    showNotification("Reminder Saved", "Your reminder has been scheduled", {
+      timeout: 3000,
+    });
   });
 }
 
-// Render reminders in the UI
+/**
+ * Render reminders in the UI
+ */
 function renderReminders() {
   const container = document.getElementById("reminders-list");
+  if (!container) return;
+
   container.innerHTML = "";
 
-  // Filter out past non-recurring reminders that have been triggered
   const now = Date.now();
   const activeReminders = reminders.filter(
-    (reminder) =>
-      reminder.recurring !== "none" ||
-      reminder.scheduledTime > now ||
-      !reminder.triggered
+    (reminder) => !reminder.triggered || reminder.recurring
   );
-
-  // Sort by scheduled time
-  activeReminders.sort((a, b) => a.scheduledTime - b.scheduledTime);
 
   if (activeReminders.length === 0) {
     container.innerHTML =
@@ -148,188 +146,219 @@ function renderReminders() {
     return;
   }
 
-  // Create reminder elements
   activeReminders.forEach((reminder) => {
     const reminderElement = document.createElement("div");
     reminderElement.className = "reminder-item";
+    if (reminder.triggered) reminderElement.classList.add("triggered");
+
     reminderElement.dataset.id = reminder.id;
 
-    // Action description
-    let actionDescription = "";
-    if (reminder.action === "open-tab") {
-      actionDescription = `Open: <span class="reminder-url">${reminder.tabUrl}</span>`;
-    } else {
-      actionDescription = "Show notification";
-    }
+    const recurringText = reminder.recurring
+      ? `<span class="reminder-recurring">${getRecurringText(
+          reminder.recurring
+        )}</span>`
+      : "";
 
     reminderElement.innerHTML = `
-      <div class="reminder-header">
+      <div class="reminder-content">
         <div class="reminder-title">${reminder.title}</div>
-        <div class="reminder-time">⏰ ${formatDate(reminder.scheduledTime)}
-          ${
-            reminder.recurring !== "none"
-              ? `<span class="reminder-recurring">${reminder.recurring}</span>`
-              : ""
-          }
+        <div class="reminder-message">${reminder.message}</div>
+        <div class="reminder-info">
+          <span class="reminder-time">⏰ ${formatDate(reminder.time)}</span>
+          ${recurringText}
+          <span class="reminder-action">${
+            reminder.action === "notification"
+              ? "Notification"
+              : `Open Tab: ${reminder.url}`
+          }</span>
         </div>
       </div>
-      <div class="reminder-message">${reminder.message}</div>
-      <div class="reminder-action">${actionDescription}</div>
-      <div class="todo-actions">
-        <button class="edit-reminder" data-id="${
-          reminder.id
-        }" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="delete-reminder" data-id="${
-          reminder.id
-        }" title="Delete"><i class="fas fa-trash"></i></button>
+      <div class="reminder-actions">
+        <button class="edit-reminder" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="delete-reminder" title="Delete"><i class="fas fa-trash"></i></button>
       </div>
     `;
 
-    // Add event listeners
     reminderElement
       .querySelector(".edit-reminder")
-      .addEventListener("click", () => editReminder(reminder.id));
+      .addEventListener("click", () => {
+        editReminder(reminder.id);
+      });
+
     reminderElement
       .querySelector(".delete-reminder")
-      .addEventListener("click", () => deleteReminder(reminder.id));
+      .addEventListener("click", () => {
+        deleteReminder(reminder.id);
+      });
 
-    // Append to container
     container.appendChild(reminderElement);
   });
 }
 
-// Edit a reminder
+/**
+ * Edit a reminder
+ * @param {string} id - Reminder ID to edit
+ */
 function editReminder(id) {
   const reminder = reminders.find((r) => r.id === id);
   if (!reminder) return;
 
-  // Populate form
   document.getElementById("reminder-title").value = reminder.title;
   document.getElementById("reminder-message").value = reminder.message;
+  document.getElementById("reminder-time").value = formatDateForInput(
+    reminder.time
+  );
+  document.getElementById("reminder-recurring").value =
+    reminder.recurring || "none";
+  document.getElementById("reminder-action").value =
+    reminder.action || "notification";
 
-  // Format date for datetime-local input
-  const date = new Date(reminder.scheduledTime);
-  const formattedDate = date.toISOString().slice(0, 16); // Format: YYYY-MM-DDThh:mm
-  document.getElementById("reminder-time").value = formattedDate;
-
-  document.getElementById("reminder-recurring").value = reminder.recurring;
-  document.getElementById("reminder-action").value = reminder.action;
-
-  // Show/hide URL input
   const urlContainer = document.getElementById("reminder-tab-url-container");
-  urlContainer.style.display =
-    reminder.action === "open-tab" ? "block" : "none";
-  document.getElementById("reminder-tab-url").value = reminder.tabUrl || "";
+  if (reminder.action === "open-tab") {
+    urlContainer.style.display = "block";
+    document.getElementById("reminder-tab-url").value = reminder.url || "";
+  } else {
+    urlContainer.style.display = "none";
+  }
 
-  // Set form to edit mode
   const form = document.getElementById("reminder-form");
   form.dataset.mode = "edit";
   form.dataset.editId = id;
 
-  // Open modal
   openModal("reminder-modal");
 }
 
-// Delete a reminder
+/**
+ * Delete a reminder
+ * @param {string} id - Reminder ID to delete
+ */
 function deleteReminder(id) {
-  if (confirm("Are you sure you want to delete this reminder?")) {
-    reminders = reminders.filter((reminder) => reminder.id !== id);
-
-    // Save to storage
-    chrome.storage.sync.set({ reminders: reminders }, function () {
-      renderReminders();
-    });
+  if (!confirm("Are you sure you want to delete this reminder?")) {
+    return;
   }
+
+  reminders = reminders.filter((reminder) => reminder.id !== id);
+
+  chrome.storage.sync.set({ reminders: reminders }, function () {
+    renderReminders();
+    updateCalendarWithReminders();
+
+    showNotification("Reminder Deleted", "The reminder has been removed", {
+      timeout: 3000,
+    });
+  });
 }
 
-// Check for reminders that need to be triggered
+/**
+ * Check for reminders that need to be triggered
+ */
 function checkReminders() {
   const now = Date.now();
   let updated = false;
 
   reminders.forEach((reminder) => {
-    // If the scheduled time has passed and it hasn't been triggered yet
-    if (reminder.scheduledTime <= now && !reminder.triggered) {
-      // Mark as triggered
-      reminder.triggered = true;
-      updated = true;
+    if (reminder.time <= now && (!reminder.triggered || reminder.recurring)) {
+      triggerReminder(reminder);
 
-      // Handle according to action type
-      if (reminder.action === "open-tab" && reminder.tabUrl) {
-        // Open the tab
-        chrome.tabs.create({
-          url: reminder.tabUrl,
-          active: true,
-        });
-      }
-
-      // Show notification for all reminders
-      showNotification(reminder.title, reminder.message, {
-        onClick: function () {
-          if (reminder.action === "open-tab" && reminder.tabUrl) {
-            chrome.tabs.create({ url: reminder.tabUrl, active: true });
-          }
-          window.focus();
-          this.close();
-        },
-      });
-
-      // If recurring, schedule the next occurrence
-      if (reminder.recurring !== "none") {
-        // Calculate next occurrence
-        const nextScheduledTime = calculateNextReminderTime(
-          reminder.scheduledTime,
+      if (reminder.recurring) {
+        const nextTime = calculateNextOccurrence(
+          new Date(reminder.time),
           reminder.recurring
         );
 
-        if (nextScheduledTime) {
-          // Create new recurring instance
-          const newReminder = {
-            ...reminder,
-            id: generateId(),
-            scheduledTime: nextScheduledTime,
-            triggered: false,
-            created: now,
-            updated: now,
-          };
-
-          reminders.push(newReminder);
+        if (nextTime) {
+          reminder.time = nextTime.getTime();
+          reminder.triggered = false;
+          updated = true;
         }
+      } else {
+        reminder.triggered = true;
+        updated = true;
       }
     }
   });
 
-  // If any reminders were triggered, update the storage
   if (updated) {
-    // Remove non-recurring triggered reminders
-    reminders = reminders.filter(
-      (reminder) => reminder.recurring !== "none" || !reminder.triggered
-    );
-
-    // Save to storage
     chrome.storage.sync.set({ reminders: reminders }, function () {
       renderReminders();
+      updateCalendarWithReminders();
     });
   }
 }
 
-// Calculate next occurrence time based on recurrence pattern
-function calculateNextReminderTime(currentTime, recurring) {
-  const date = new Date(currentTime);
+/**
+ * Trigger a reminder action (notification or open tab)
+ * @param {Object} reminder - Reminder object to trigger
+ */
+function triggerReminder(reminder) {
+  if (reminder.action === "open-tab" && reminder.url) {
+    chrome.tabs.create({ url: reminder.url, active: true });
+  }
 
-  switch (recurring) {
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "../images/icon128.png",
+    title: reminder.title,
+    message: reminder.message,
+    priority: 2,
+  });
+}
+
+/**
+ * Calculate the next occurrence of a recurring reminder
+ * @param {Date} currentTime - Current scheduled time
+ * @param {string} recurrence - Recurrence pattern
+ * @returns {Date} Next scheduled time
+ */
+function calculateNextOccurrence(currentTime, recurrence) {
+  const nextTime = new Date(currentTime);
+
+  switch (recurrence) {
     case "daily":
-      date.setDate(date.getDate() + 1);
+      nextTime.setDate(nextTime.getDate() + 1);
+      break;
+    case "weekdays":
+      let addDays = 1;
+      if (nextTime.getDay() === 5) addDays = 3;
+      if (nextTime.getDay() === 6) addDays = 2;
+      nextTime.setDate(nextTime.getDate() + addDays);
       break;
     case "weekly":
-      date.setDate(date.getDate() + 7);
+      nextTime.setDate(nextTime.getDate() + 7);
+      break;
+    case "biweekly":
+      nextTime.setDate(nextTime.getDate() + 14);
       break;
     case "monthly":
-      date.setMonth(date.getMonth() + 1);
+      nextTime.setMonth(nextTime.getMonth() + 1);
+      break;
+    case "quarterly":
+      nextTime.setMonth(nextTime.getMonth() + 3);
+      break;
+    case "yearly":
+      nextTime.setFullYear(nextTime.getFullYear() + 1);
       break;
     default:
       return null;
   }
 
-  return date.getTime();
+  return nextTime;
+}
+
+/**
+ * Update calendar with reminder dates
+ */
+function updateCalendarWithReminders() {
+  const reminderDates = reminders
+    .filter((reminder) => !reminder.triggered)
+    .map((reminder) => ({
+      id: reminder.id,
+      date: new Date(reminder.time),
+      title: reminder.title,
+      type: "reminder",
+    }));
+
+  if (typeof updateCalendarEvents === "function") {
+    updateCalendarEvents(reminderDates);
+  }
 }
