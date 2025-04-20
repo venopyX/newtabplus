@@ -1,6 +1,6 @@
 <div align="center">
     <h1>NewTab+</h1>
-  <img src="images/icon128.png" alt="NewTab+ Logo" width="120">
+  <img src="https://raw.githubusercontent.com/venopyX/newtabplus/refs/heads/main/images/icon128.png" alt="NewTab+ Logo" width="120">
   <h3>Transform Your Browser's New Tab Into a Productivity Powerhouse</h3>
   <p>A feature-rich Chrome extension that replaces your new tab with an all-in-one productivity dashboard</p>
 </div>
@@ -69,13 +69,13 @@
 ## 📸 Screenshots
 
 <div align="center">
-    <img src="screenshots/screenshot-1.png" alt="NewTab+ Dashboard" width="800">
+    <img src="https://raw.githubusercontent.com/venopyX/newtabplus/refs/heads/main/screenshots/screenshot-1.png" alt="NewTab+ Dashboard" width="800">
     <p><em>Main dashboard in Dark Mode</em></p>
     </br>
-    <img src="screenshots/screenshot-2.png" alt="Task Management" width="800">
+    <img src="https://raw.githubusercontent.com/venopyX/newtabplus/refs/heads/main/screenshots/screenshot-2.png" alt="Task Management" width="800">
     <p><em>Main Dashboard in Light Mode</em></p>
     </br>
-    <img src="screenshots/screenshot-3.png" alt="Notes Section" width="800">
+    <img src="https://raw.githubusercontent.com/venopyX/newtabplus/refs/heads/main/screenshots/screenshot-3.png" alt="Notes Section" width="800">
     <p><em>Rich text notes with Markdown support</em></p>
 </div>
 
