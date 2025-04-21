@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NewTab+",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Gemechis Chala",
   "homepage_url": "https://github.com/venopyx/newtabplus",
   "description": "All-in-one productivity suite that replaces the new tab page with customizable dashboard",
