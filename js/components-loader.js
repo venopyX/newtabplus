@@ -22,6 +22,7 @@ const ComponentLoader = {
     { path: "../components/modals/note-view-modal.html" },
     { path: "../components/modals/todo-modal.html" },
     { path: "../components/modals/reminder-modal.html" },
+    { path: "../components/modals/search-engine-modal.html" }, // Added search engine modal
   ],
 
   /**
