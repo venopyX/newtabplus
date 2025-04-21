@@ -1,0 +1,82 @@
+<!-- Search Engine Modal for adding/editing search engines -->
+<div class="modal" id="search-engine-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="search-engine-modal-title">Add Search Engine</h2>
+      <button class="close-modal" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form id="search-engine-form">
+      <div class="form-group">
+        <label for="engine-name">Name:</label>
+        <input
+          type="text"
+          id="engine-name"
+          name="engine-name"
+          placeholder="Google"
+          autocomplete="off"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="engine-placeholder">Search Placeholder:</label>
+        <input
+          type="text"
+          id="engine-placeholder"
+          name="engine-placeholder"
+          placeholder="Search Google..."
+          autocomplete="off"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="engine-url">Search URL:</label>
+        <input
+          type="text"
+          id="engine-url"
+          name="engine-url"
+          placeholder="https://www.google.com/search?q=%s"
+          autocomplete="off"
+          required
+        />
+        <small class="form-text"
+          >Use %s where the search query should be inserted.</small
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="engine-icon">Icon URL:</label>
+        <input
+          type="text"
+          id="engine-icon"
+          name="engine-icon"
+          placeholder="https://www.google.com/favicon.ico"
+          autocomplete="off"
+        />
+        <small class="form-text">Optional. Leave empty for default icon.</small>
+      </div>
+
+      <div class="form-group icon-preview">
+        <label>Icon Preview:</label>
+        <div id="icon-preview-container">
+          <img id="icon-preview" src="" alt="Icon Preview" />
+        </div>
+      </div>
+
+      <input type="hidden" id="engine-id" name="engine-id" />
+      <input
+        type="hidden"
+        id="engine-action"
+        name="engine-action"
+        value="add"
+      />
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
