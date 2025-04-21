@@ -80,7 +80,7 @@ const defaultSearchEngines = [
     name: "Wolfram Alpha",
     placeholder: "Calculate with Wolfram Alpha...",
     url: "http://www.wolframalpha.com/input/?i=%s",
-    icon: "http://www.wolframalpha.com/favicon.ico",
+    icon: "https://www.wolframalpha.com/_next/static/images/favicon_1zbE9hjk.ico",
   },
   {
     id: "github",
