@@ -45,7 +45,7 @@ const defaultSearchEngines = [
     name: "Grep",
     placeholder: "Search code with Grep...",
     url: "https://grep.app/search?q=%s",
-    icon: "https://grep.app/favicon.ico",
+    icon: "https://grep.app/icon.png",
   },
   {
     id: "yandex",
