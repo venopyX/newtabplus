@@ -4,6 +4,31 @@
     <img src="../images/icon128.png" alt="NewTab+" class="header-logo" />
     <h1>NewTab+</h1>
   </div>
+
+  <!-- Search section - new addition -->
+  <div class="search-container">
+    <div class="search-engine-selector">
+      <button id="search-engine-button" class="search-engine-btn">
+        <img id="search-engine-icon" src="" alt="Search" />
+      </button>
+      <div id="search-engine-dropdown" class="search-engine-dropdown hidden">
+        <!-- Search engines will be populated here dynamically -->
+      </div>
+    </div>
+    <!-- Removed inline JavaScript to comply with CSP -->
+    <form id="search-form" target="_blank">
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Search the web..."
+        autocomplete="off"
+      />
+      <button type="submit" class="search-submit-btn">
+        <i class="fas fa-search"></i>
+      </button>
+    </form>
+  </div>
+
   <div class="controls-container">
     <a
       href="https://github.com/venopyx/newtabplus"
