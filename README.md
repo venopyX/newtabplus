@@ -15,6 +15,13 @@
 
 ## ✨ Features
 
+### 🔍 Flexible Search Engine
+
+- Easily search the web directly from your new tab
+- Customizable search engine selection (ChatGPT, Google, Perplexity, Bing, DuckDuckGo, GitHub, Grep, Stack Overflow, and more)
+- Add, edit, and delete custom search engines with your preferred icons
+- Quickly switch between engines with a single click
+
 ### 📅 Timed Tab Recall
 
 - Schedule tabs to open at specific times
