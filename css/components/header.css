@@ -14,7 +14,7 @@ header {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border-color);
   position: relative;
-  overflow: hidden;
+  /* Removed overflow: hidden to prevent dropdown clipping */
 }
 
 /* Decorative accent line */
@@ -31,6 +31,176 @@ header::before {
     var(--primary-color)
   );
   z-index: 1;
+}
+
+/* Search section styles */
+.search-container {
+  display: flex;
+  flex: 1;
+  max-width: 600px;
+  margin: 0 15px;
+  position: relative;
+  z-index: 10; /* Higher than header but lower than dropdown */
+}
+
+.search-engine-selector {
+  position: relative;
+}
+
+.search-engine-btn {
+  background: none;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: -1px;
+  z-index: 2;
+  position: relative;
+}
+
+.search-engine-btn:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.search-engine-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.search-engine-dropdown {
+  position: absolute;
+  background-color: var(--card-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  min-width: 200px;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-engine-dropdown.hidden {
+  display: none;
+}
+
+.search-engine-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-engine-item:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.search-engine-item img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.search-engine-item.active {
+  background-color: rgba(var(--primary-color-rgb), 0.15);
+}
+
+.search-engine-item .engine-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-engine-item .engine-actions {
+  display: flex;
+  gap: 5px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.search-engine-item:hover .engine-actions {
+  visibility: visible;
+  opacity: 1;
+}
+
+.engine-actions button {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-secondary-color);
+  font-size: 0.8rem;
+  border-radius: 3px;
+}
+
+.engine-actions button:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.2);
+  color: var(--text-color);
+}
+
+#search-form {
+  display: flex;
+  flex: 1;
+}
+
+#search-input {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 20px 0 0 20px;
+  padding: 8px 12px;
+  padding-left: 40px;
+  margin-left: -30px;
+  background-color: var(--hover-bg-color);
+  color: var(--text-color);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+#search-input:focus {
+  background-color: var(--card-bg-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.search-submit-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 20px 20px 0;
+  padding: 0 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-submit-btn:hover {
+  background-color: var(--accent-color);
+}
+
+.add-engine-btn {
+  padding: 8px 12px;
+  text-align: center;
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+  color: var(--primary-color);
+  margin: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.add-engine-btn:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.2);
+}
+
+.add-engine-btn i {
+  margin-right: 5px;
 }
 
 /* Left section - Logo and Title */
@@ -244,6 +414,13 @@ h1 {
     margin-bottom: 10px;
   }
 
+  .search-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    order: 2;
+  }
+
   .date-time {
     order: -1;
   }
@@ -251,5 +428,6 @@ h1 {
   .controls-container {
     flex-wrap: wrap;
     justify-content: center;
+    order: 3;
   }
 }
