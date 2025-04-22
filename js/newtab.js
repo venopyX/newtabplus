@@ -27,6 +27,14 @@ document.addEventListener("componentsLoaded", function () {
       }
     });
 
+  // YouTube toggle button
+  const youtubeToggleBtn = document.getElementById("youtube-toggle-btn");
+  if (youtubeToggleBtn) {
+    youtubeToggleBtn.addEventListener("click", function () {
+      toggleYouTubeSidepanel();
+    });
+  }
+
   initializeTimedTabs();
   initializeNotes();
   initializeTodos();
@@ -64,6 +72,13 @@ function setupMessageListener() {
 
     if (message.action === "openNoteModal") {
       openModal("note-modal");
+      return true;
+    }
+
+    if (message.action === "openYouTubeSidepanel") {
+      if (typeof showYouTubeSidepanel === "function") {
+        showYouTubeSidepanel();
+      }
       return true;
     }
 
