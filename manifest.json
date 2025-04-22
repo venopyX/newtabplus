@@ -6,6 +6,7 @@
   "homepage_url": "https://github.com/venopyx/newtabplus",
   "description": "All-in-one productivity suite that replaces the new tab page with customizable dashboard",
   "permissions": ["storage", "tabs", "alarms", "notifications", "bookmarks"],
+  "host_permissions": ["https://yt-me-venopyx.vercel.app/*"],
   "chrome_url_overrides": {
     "newtab": "html/newtab.html"
   },
