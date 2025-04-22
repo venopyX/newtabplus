@@ -1,0 +1,78 @@
+<!-- YouTube Sidepanel component for NewTab+ -->
+<section class="sidepanel" id="youtube-sidepanel">
+  <div class="sidepanel-header">
+    <h2><i class="fas fa-music"></i> YouTube Audio Player</h2>
+    <button id="youtube-sidepanel-toggle" class="sidepanel-close">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="sidepanel-content">
+    <div class="yt-search-container">
+      <input
+        type="text"
+        id="yt-search-input"
+        placeholder="Search for music or podcasts..."
+      />
+      <button id="yt-search-button">Search</button>
+    </div>
+
+    <div class="loading" id="yt-loading">
+      <div class="spinner"></div>
+      <p>Searching...</p>
+    </div>
+
+    <div class="error-message" id="yt-error-message"></div>
+
+    <h3 id="yt-results-heading">Search Results</h3>
+    <div id="yt-no-results">No videos found. Try a different search term.</div>
+    <div class="results-container" id="yt-results-container"></div>
+
+    <div class="player-container" id="yt-player-container">
+      <div class="player-info">
+        <img
+          class="now-playing-thumbnail"
+          id="yt-now-playing-thumbnail"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 34' fill='%23ddd'%3E%3Crect width='60' height='34'/%3E%3Cpath d='M30 17 L42 10 L42 24 L30 17 Z' fill='%23aaa'/%3E%3C/svg%3E"
+          alt="Thumbnail"
+        />
+        <div class="now-playing-title" id="yt-now-playing-title">
+          Nothing playing
+        </div>
+      </div>
+      <div class="controls">
+        <!-- Seekbar row now at top -->
+        <div class="seekbar-container">
+          <div class="time" id="yt-current-time">0:00</div>
+          <div class="timeline">
+            <input
+              type="range"
+              class="progress"
+              id="yt-progress"
+              min="0"
+              max="100"
+              value="0"
+            />
+          </div>
+          <div class="time" id="yt-duration">0:00</div>
+        </div>
+
+        <!-- Player controls row below -->
+        <div class="player-controls">
+          <button class="play-pause" id="yt-play-pause">▶️</button>
+          <div class="volume-container">
+            <span class="volume-icon" id="yt-volume-icon">🔊</span>
+            <input
+              type="range"
+              class="volume-slider"
+              id="yt-volume-slider"
+              min="0"
+              max="100"
+              value="100"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
