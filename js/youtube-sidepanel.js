@@ -3,783 +3,865 @@
  * Handles YouTube video searching and playback with CSP-compatible implementation
  */
 
-// Global variables
-let currentVideoId = "";
-let isPlaying = false;
-let currentResultsList = [];
-let playerReady = false;
-let timeUpdateInterval = null;
-let videoData = {}; 
-let estimatedCurrentTime = 0;
-let lastUpdateTime = 0;
+const YouTubeSidepanel = (() => {
+  /**
+   * Private state for the YouTube sidepanel module
+   */
+  const state = {
+    currentVideoId: "",
+    isPlaying: false,
+    currentResultsList: [],
+    playerReady: false,
+    timeUpdateInterval: null,
+    videoData: {},
+    estimatedCurrentTime: 0,
+    lastUpdateTime: 0,
+  };
 
-/**
- * Initializes the YouTube sidepanel and sets up event listeners
- */
-function initializeYouTubeSidepanel() {
-  const searchInput = document.getElementById("yt-search-input");
-  const searchButton = document.getElementById("yt-search-button");
-  const resultsContainer = document.getElementById("yt-results-container");
-  const playerContainer = document.getElementById("yt-player-container");
-  const playPauseButton = document.getElementById("yt-play-pause");
-  const currentTimeDisplay = document.getElementById("yt-current-time");
-  const durationDisplay = document.getElementById("yt-duration");
-  const progressBar = document.getElementById("yt-progress");
-  const nowPlayingThumbnail = document.getElementById(
-    "yt-now-playing-thumbnail"
-  );
-  const nowPlayingTitle = document.getElementById("yt-now-playing-title");
-  const loadingElement = document.getElementById("yt-loading");
-  const resultsHeading = document.getElementById("yt-results-heading");
-  const noResultsElement = document.getElementById("yt-no-results");
-  const errorMessageElement = document.getElementById("yt-error-message");
-  const volumeSlider = document.getElementById("yt-volume-slider");
-  const volumeIcon = document.getElementById("yt-volume-icon");
-  const sidepanelToggle = document.getElementById("youtube-sidepanel-toggle");
+  /**
+   * Cached DOM elements to avoid repeated queries
+   */
+  const dom = {};
 
-  if (sidepanelToggle) {
-    sidepanelToggle.addEventListener("click", toggleYouTubeSidepanel);
+  /**
+   * Initializes the YouTube sidepanel and sets up event listeners
+   */
+  function initialize() {
+    cacheDOMElements();
+    setupEventListeners();
+    setupPlayer();
   }
 
-  if (searchButton) {
-    searchButton.addEventListener("click", performYouTubeSearch);
-  }
+  /**
+   * Cache all required DOM elements
+   */
+  function cacheDOMElements() {
+    const elements = [
+      "yt-search-input",
+      "yt-search-button",
+      "yt-results-container",
+      "yt-player-container",
+      "yt-play-pause",
+      "yt-current-time",
+      "yt-duration",
+      "yt-progress",
+      "yt-now-playing-thumbnail",
+      "yt-now-playing-title",
+      "yt-loading",
+      "yt-results-heading",
+      "yt-no-results",
+      "yt-error-message",
+      "yt-volume-slider",
+      "yt-volume-icon",
+      "youtube-sidepanel-toggle",
+      "youtube-sidepanel",
+    ];
 
-  if (searchInput) {
-    searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") performYouTubeSearch();
+    elements.forEach((id) => {
+      dom[id] = document.getElementById(id);
     });
   }
 
-  if (playPauseButton) {
-    playPauseButton.addEventListener("click", toggleYouTubePlayPause);
+  /**
+   * Setup event listeners for user interaction
+   */
+  function setupEventListeners() {
+    if (dom["youtube-sidepanel-toggle"]) {
+      dom["youtube-sidepanel-toggle"].addEventListener(
+        "click",
+        toggleSidepanel
+      );
+    }
+
+    if (dom["yt-search-button"]) {
+      dom["yt-search-button"].addEventListener("click", performSearch);
+    }
+
+    if (dom["yt-search-input"]) {
+      dom["yt-search-input"].addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          performSearch();
+        }
+      });
+    }
+
+    if (dom["yt-play-pause"]) {
+      dom["yt-play-pause"].addEventListener("click", togglePlayPause);
+    }
+
+    if (dom["yt-progress"]) {
+      dom["yt-progress"].addEventListener("input", handleProgressChange);
+    }
+
+    if (dom["yt-volume-slider"]) {
+      dom["yt-volume-slider"].addEventListener("input", handleVolumeChange);
+    }
+
+    if (dom["yt-volume-icon"]) {
+      dom["yt-volume-icon"].addEventListener("click", toggleMute);
+    }
+
+    window.addEventListener("message", handleMessages);
+    window.addEventListener("beforeunload", cleanup);
   }
 
-  if (progressBar) {
-    progressBar.addEventListener("input", handleYouTubeProgressChange);
+  /**
+   * Sets up YouTube player with CSP-compatible approach
+   */
+  function setupPlayer() {
+    const playerContainer = document.createElement("div");
+    playerContainer.id = "youtube-player-container";
+    playerContainer.style.display = "none";
+    document.body.appendChild(playerContainer);
+
+    const iframe = document.createElement("iframe");
+    iframe.id = "youtube-player-iframe";
+    iframe.width = "1";
+    iframe.height = "1";
+    iframe.style.visibility = "hidden";
+    iframe.style.position = "absolute";
+    iframe.style.top = "-9999px";
+    iframe.style.left = "-9999px";
+    iframe.allow = "autoplay";
+
+    playerContainer.appendChild(iframe);
+    state.playerReady = true;
   }
 
-  if (volumeSlider) {
-    volumeSlider.addEventListener("input", handleYouTubeVolumeChange);
-  }
+  /**
+   * Handles messages from the YouTube iframe
+   * @param {MessageEvent} event - Message event containing data from YouTube iframe
+   */
+  function handleMessages(event) {
+    const trustedOrigins = ["https://www.youtube.com", "https://youtube.com"];
+    if (!trustedOrigins.includes(event.origin)) {
+      console.warn("Untrusted message origin:", event.origin);
+      return;
+    }
 
-  if (volumeIcon) {
-    volumeIcon.addEventListener("click", toggleYouTubeMute);
-  }
+    if (!event.data || typeof event.data !== "string") {
+      return;
+    }
 
-  setupYouTubePlayer();
-}
+    try {
+      const data = JSON.parse(event.data);
 
-/**
- * Sets up YouTube player with CSP-compatible approach
- */
-function setupYouTubePlayer() {
-  const playerContainer = document.createElement("div");
-  playerContainer.id = "youtube-player-container";
-  playerContainer.style.display = "none";
-  document.body.appendChild(playerContainer);
-
-  const iframe = document.createElement("iframe");
-  iframe.id = "youtube-player-iframe";
-  iframe.width = "1";
-  iframe.height = "1";
-  iframe.style.visibility = "hidden";
-  iframe.style.position = "absolute";
-  iframe.style.top = "-9999px";
-  iframe.style.left = "-9999px";
-  iframe.allow = "autoplay";
-
-  playerContainer.appendChild(iframe);
-
-  window.addEventListener("message", handleYouTubeMessages);
-
-  playerReady = true;
-}
-
-/**
- * Handles messages from the YouTube iframe
- * @param {MessageEvent} event - Message event containing data from YouTube iframe
- */
-function handleYouTubeMessages(event) {
-  if (!event.data || typeof event.data !== "string") return;
-
-  try {
-    const data = JSON.parse(event.data);
-
-    if (data.event === "onStateChange") {
-      handleYouTubePlayerStateChange(data.info);
-    } else if (data.event === "infoDelivery") {
-      if (data.info && data.info.currentTime !== undefined) {
-        estimatedCurrentTime = data.info.currentTime;
-        lastUpdateTime = Date.now() / 1000;
-        updateTimeDisplay(data.info.currentTime, data.info.duration);
+      if (data.event === "onStateChange") {
+        handlePlayerStateChange(data.info);
+      } else if (data.event === "infoDelivery") {
+        if (data.info && data.info.currentTime !== undefined) {
+          state.estimatedCurrentTime = data.info.currentTime;
+          state.lastUpdateTime = Date.now() / 1000;
+          updateTimeDisplay(data.info.currentTime, data.info.duration);
+        }
       }
+    } catch (e) {
+      // Ignore parsing errors
     }
-  } catch (e) {
-    // Ignore parsing errors
   }
-}
 
-/**
- * Toggles YouTube sidepanel visibility
- */
-function toggleYouTubeSidepanel() {
-  const sidepanel = document.getElementById("youtube-sidepanel");
-  if (sidepanel) {
-    sidepanel.classList.toggle("open");
+  /**
+   * Toggles YouTube sidepanel visibility
+   */
+  function toggleSidepanel() {
+    if (dom["youtube-sidepanel"]) {
+      dom["youtube-sidepanel"].classList.toggle("open");
+    }
   }
-}
 
-/**
- * Shows YouTube sidepanel
- */
-function showYouTubeSidepanel() {
-  const sidepanel = document.getElementById("youtube-sidepanel");
-  if (sidepanel && !sidepanel.classList.contains("open")) {
-    sidepanel.classList.add("open");
+  /**
+   * Shows YouTube sidepanel
+   */
+  function showSidepanel() {
+    if (
+      dom["youtube-sidepanel"] &&
+      !dom["youtube-sidepanel"].classList.contains("open")
+    ) {
+      dom["youtube-sidepanel"].classList.add("open");
+    }
   }
-}
 
-/**
- * Performs YouTube search with the current search input value
- */
-async function performYouTubeSearch() {
-  const searchInput = document.getElementById("yt-search-input");
-  if (!searchInput) return;
-
-  const query = searchInput.value.trim();
-  if (query === "") return;
-
-  showYouTubeLoading(true);
-  hideYouTubeError();
-
-  try {
-    const response = await fetch(
-      `https://yt-me-venopyx.vercel.app/api/search?q=${encodeURIComponent(
-        query
-      )}`
-    );
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to search for videos");
+  /**
+   * Performs YouTube search with the current search input value
+   */
+  async function performSearch() {
+    if (!dom["yt-search-input"]) {
+      return;
     }
 
-    displayYouTubeResults(data.results);
-  } catch (error) {
-    console.error("Search error:", error);
-    showYouTubeError(`Error searching for "${query}": ${error.message}`);
-    hideYouTubeResults();
-  } finally {
-    showYouTubeLoading(false);
+    const query = dom["yt-search-input"].value.trim();
+    if (query === "") {
+      return;
+    }
+
+    showLoading(true);
+    hideError();
+
+    try {
+      const response = await fetch(
+        `https://yt-me-venopyx.vercel.app/api/search?q=${encodeURIComponent(
+          query
+        )}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to search for videos");
+      }
+
+      displayResults(data.results);
+    } catch (error) {
+      console.error("Search error:", error);
+      showError(`Error searching for "${query}": ${error.message}`);
+      hideResults();
+    } finally {
+      showLoading(false);
+    }
   }
-}
 
-/**
- * Displays YouTube search results
- * @param {Array} results - Array of video results
- */
-function displayYouTubeResults(results) {
-  const resultsContainer = document.getElementById("yt-results-container");
-  const resultsHeading = document.getElementById("yt-results-heading");
-  const noResultsElement = document.getElementById("yt-no-results");
+  /**
+   * Displays YouTube search results
+   * @param {Array} results - Array of video results
+   */
+  function displayResults(results) {
+    if (
+      !dom["yt-results-container"] ||
+      !dom["yt-results-heading"] ||
+      !dom["yt-no-results"]
+    ) {
+      return;
+    }
 
-  if (!resultsContainer || !resultsHeading || !noResultsElement) return;
+    state.currentResultsList = results;
 
-  currentResultsList = results;
+    if (!results || results.length === 0) {
+      showNoResults();
+      return;
+    }
 
-  if (!results || results.length === 0) {
-    showYouTubeNoResults();
-    return;
-  }
+    dom["yt-results-container"].innerHTML = "";
+    results.forEach((video, index) => {
+      state.videoData[video.id] = {
+        duration: convertDurationToSeconds(video.duration),
+        title: video.title,
+        thumbnail: video.thumbnailUrl,
+      };
 
-  resultsContainer.innerHTML = "";
-  results.forEach((video, index) => {
-    videoData[video.id] = {
-      duration: convertDurationToSeconds(video.duration),
-      title: video.title,
-      thumbnail: video.thumbnailUrl,
-    };
+      const resultItem = document.createElement("div");
+      resultItem.className = "result-item";
+      resultItem.dataset.videoId = video.id;
+      resultItem.dataset.index = index;
 
-    const resultItem = document.createElement("div");
-    resultItem.className = "result-item";
-    resultItem.dataset.videoId = video.id;
-    resultItem.dataset.index = index;
+      resultItem.innerHTML = `
+        <img class="thumbnail" src="${video.thumbnailUrl}" alt="${video.title}">
+        <div class="info">
+          <div class="title">${video.title}</div>
+          <div class="channel">${video.channelName}</div>
+          <div class="duration">${video.duration}</div>
+          <div class="views">${formatViews(video.views)} views</div>
+        </div>
+      `;
 
-    resultItem.innerHTML = `
-      <img class="thumbnail" src="${video.thumbnailUrl}" alt="${video.title}">
-      <div class="info">
-        <div class="title">${video.title}</div>
-        <div class="channel">${video.channelName}</div>
-        <div class="duration">${video.duration}</div>
-        <div class="views">${formatYouTubeViews(video.views)} views</div>
-      </div>
-    `;
+      resultItem.addEventListener("click", () => {
+        playVideo(video.id, video.title, video.thumbnailUrl);
+        highlightResult(resultItem);
+      });
 
-    resultItem.addEventListener("click", () => {
-      playYouTubeVideo(video.id, video.title, video.thumbnailUrl);
-      highlightYouTubeResult(resultItem);
+      dom["yt-results-container"].appendChild(resultItem);
     });
 
-    resultsContainer.appendChild(resultItem);
-  });
-
-  showYouTubeResults();
-}
-
-/**
- * Converts duration string to seconds
- * @param {string} durationStr - Duration in format "MM:SS" or "HH:MM:SS"
- * @returns {number} - Duration in seconds
- */
-function convertDurationToSeconds(durationStr) {
-  if (!durationStr) return 0;
-
-  const parts = durationStr.split(":");
-  if (parts.length === 2) {
-    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-  } else if (parts.length === 3) {
-    return (
-      parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2])
-    );
-  }
-  return 0;
-}
-
-/**
- * Formats view count with appropriate suffixes
- * @param {number} views - Number of views
- * @returns {string} - Formatted view count
- */
-function formatYouTubeViews(views) {
-  if (views >= 1000000) {
-    return `${(views / 1000000).toFixed(1)}M`;
-  } else if (views >= 1000) {
-    return `${(views / 1000).toFixed(1)}K`;
-  }
-  return views;
-}
-
-/**
- * Plays a YouTube video
- * @param {string} videoId - YouTube video ID
- * @param {string} title - Video title
- * @param {string} thumbnail - Video thumbnail URL
- */
-function playYouTubeVideo(videoId, title, thumbnail) {
-  if (currentVideoId === videoId && isPlaying) {
-    pauseYouTubeAudio();
-    return;
-  } else if (currentVideoId === videoId && !isPlaying) {
-    playYouTubeAudio();
-    return;
+    showResults();
   }
 
-  estimatedCurrentTime = 0;
-  lastUpdateTime = Date.now() / 1000;
+  /**
+   * Converts duration string to seconds
+   * @param {string} durationStr - Duration in format "MM:SS" or "HH:MM:SS"
+   * @returns {number} - Duration in seconds
+   */
+  function convertDurationToSeconds(durationStr) {
+    if (!durationStr) {
+      return 0;
+    }
 
-  if (timeUpdateInterval) {
-    clearInterval(timeUpdateInterval);
-  }
-
-  currentVideoId = videoId;
-
-  const nowPlayingTitle = document.getElementById("yt-now-playing-title");
-  const nowPlayingThumbnail = document.getElementById(
-    "yt-now-playing-thumbnail"
-  );
-
-  if (nowPlayingTitle) nowPlayingTitle.textContent = title;
-  if (nowPlayingThumbnail) nowPlayingThumbnail.src = thumbnail;
-
-  updateTimeDisplay(0, videoData[videoId]?.duration || 0);
-
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (iframe) {
-    iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=0&disablekb=1&modestbranding=1&fs=0&rel=0&origin=${encodeURIComponent(
-      window.location.origin
-    )}`;
-
-    setTimeout(() => {
-      timeUpdateInterval = setInterval(updateProgressWithEstimate, 250);
-    }, 1000);
-  }
-
-  isPlaying = true;
-  updateYouTubePlayPauseButton();
-
-  const playerContainer = document.getElementById("yt-player-container");
-  if (playerContainer) {
-    playerContainer.style.display = "block";
-  }
-}
-
-/**
- * Updates progress using time estimation between YouTube API updates
- */
-function updateProgressWithEstimate() {
-  if (!isPlaying) return;
-
-  const currentRealTime = Date.now() / 1000;
-  const elapsedSinceUpdate = currentRealTime - lastUpdateTime;
-  const currentEstimatedTime = estimatedCurrentTime + elapsedSinceUpdate;
-  const duration = videoData[currentVideoId]?.duration || 100;
-
-  updateTimeDisplay(currentEstimatedTime, duration);
-  requestCurrentTime();
-}
-
-/**
- * Requests current time from the YouTube iframe
- */
-function requestCurrentTime() {
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (!iframe || !iframe.contentWindow) return;
-
-  try {
-    iframe.contentWindow.postMessage(
-      JSON.stringify({
-        event: "listening",
-        id: iframe.id,
-      }),
-      "*"
-    );
-
-    iframe.contentWindow.postMessage(
-      JSON.stringify({
-        event: "command",
-        func: "getCurrentTime",
-        args: [],
-      }),
-      "*"
-    );
-
-    iframe.contentWindow.postMessage(
-      JSON.stringify({
-        event: "command",
-        func: "getDuration",
-        args: [],
-      }),
-      "*"
-    );
-
-    iframe.contentWindow.postMessage(
-      JSON.stringify({
-        event: "command",
-        func: "getPlayerState",
-        args: [],
-      }),
-      "*"
-    );
-  } catch (e) {
-    console.error("Error requesting data from YouTube iframe:", e);
-  }
-}
-
-/**
- * Updates time display with current time and duration
- * @param {number} currentTime - Current playback position in seconds
- * @param {number} duration - Total video duration in seconds
- */
-function updateTimeDisplay(currentTime, duration) {
-  const currentTimeDisplay = document.getElementById("yt-current-time");
-  const durationDisplay = document.getElementById("yt-duration");
-  const progressBar = document.getElementById("yt-progress");
-
-  if (!currentTimeDisplay || !durationDisplay || !progressBar) return;
-
-  if (!duration && videoData[currentVideoId]) {
-    duration = videoData[currentVideoId].duration;
-  }
-
-  if (currentTimeDisplay) {
-    currentTimeDisplay.textContent = formatYouTubeTime(currentTime);
-  }
-
-  if (durationDisplay && duration) {
-    durationDisplay.textContent = formatYouTubeTime(duration);
-  }
-
-  if (
-    progressBar &&
-    duration &&
-    !progressBar.getAttribute("dragging") &&
-    duration > 0
-  ) {
-    progressBar.value = Math.min((currentTime / duration) * 100, 100);
-  }
-}
-
-/**
- * Handles YouTube player state changes
- * @param {number} state - Player state code
- */
-function handleYouTubePlayerStateChange(state) {
-  switch (state) {
-    case 1:
-      isPlaying = true;
-      updateYouTubePlayPauseButton();
-      break;
-    case 2:
-      isPlaying = false;
-      updateYouTubePlayPauseButton();
-      break;
-    case 0:
-      isPlaying = false;
-      updateYouTubePlayPauseButton();
-
-      if (timeUpdateInterval) {
-        clearInterval(timeUpdateInterval);
-        timeUpdateInterval = null;
-      }
-
-      const duration = videoData[currentVideoId]?.duration || 0;
-      updateTimeDisplay(duration, duration);
-      playNextYouTubeVideo();
-      break;
-  }
-}
-
-/**
- * Updates play/pause button display based on playback state
- */
-function updateYouTubePlayPauseButton() {
-  const playPauseButton = document.getElementById("yt-play-pause");
-  if (playPauseButton) {
-    playPauseButton.textContent = isPlaying ? "⏸️" : "▶️";
-  }
-}
-
-/**
- * Toggles play/pause state
- */
-function toggleYouTubePlayPause() {
-  if (isPlaying) {
-    pauseYouTubeAudio();
-  } else {
-    playYouTubeAudio();
-  }
-}
-
-/**
- * Plays audio for current video
- */
-function playYouTubeAudio() {
-  if (!currentVideoId) return;
-
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (iframe && iframe.contentWindow) {
-    try {
-      iframe.contentWindow.postMessage(
-        JSON.stringify({
-          event: "command",
-          func: "playVideo",
-          args: [],
-        }),
-        "*"
+    const parts = durationStr.split(":");
+    if (parts.length === 2) {
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    } else if (parts.length === 3) {
+      return (
+        parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2])
       );
+    }
+    return 0;
+  }
 
-      lastUpdateTime = Date.now() / 1000;
+  /**
+   * Formats view count with appropriate suffixes
+   * @param {number} views - Number of views
+   * @returns {string} - Formatted view count
+   */
+  function formatViews(views) {
+    if (views >= 1000000) {
+      return `${(views / 1000000).toFixed(1)}M`;
+    } else if (views >= 1000) {
+      return `${(views / 1000).toFixed(1)}K`;
+    }
+    return views;
+  }
 
-      if (!timeUpdateInterval) {
-        timeUpdateInterval = setInterval(updateProgressWithEstimate, 250);
-      }
-    } catch (e) {
-      console.error("Error playing video:", e);
+  /**
+   * Plays a YouTube video
+   * @param {string} videoId - YouTube video ID
+   * @param {string} title - Video title
+   * @param {string} thumbnail - Video thumbnail URL
+   */
+  function playVideo(videoId, title, thumbnail) {
+    if (state.currentVideoId === videoId && state.isPlaying) {
+      pauseAudio();
+      return;
+    } else if (state.currentVideoId === videoId && !state.isPlaying) {
+      playAudio();
+      return;
+    }
+
+    state.estimatedCurrentTime = 0;
+    state.lastUpdateTime = Date.now() / 1000;
+
+    if (state.timeUpdateInterval) {
+      clearInterval(state.timeUpdateInterval);
+    }
+
+    state.currentVideoId = videoId;
+
+    if (dom["yt-now-playing-title"]) {
+      dom["yt-now-playing-title"].textContent = title;
+    }
+
+    if (dom["yt-now-playing-thumbnail"]) {
+      dom["yt-now-playing-thumbnail"].src = thumbnail;
+    }
+
+    updateTimeDisplay(0, state.videoData[videoId]?.duration || 0);
+
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (iframe) {
+      iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=0&disablekb=1&modestbranding=1&fs=0&rel=0&origin=${encodeURIComponent(
+        window.location.origin
+      )}`;
+
+      setTimeout(() => {
+        state.timeUpdateInterval = setInterval(updateProgressWithEstimate, 250);
+      }, 1000);
+    }
+
+    state.isPlaying = true;
+    updatePlayPauseButton();
+
+    if (dom["yt-player-container"]) {
+      dom["yt-player-container"].style.display = "block";
     }
   }
 
-  isPlaying = true;
-  updateYouTubePlayPauseButton();
-}
+  /**
+   * Updates progress using time estimation between YouTube API updates
+   */
+  function updateProgressWithEstimate() {
+    if (!state.isPlaying) {
+      return;
+    }
 
-/**
- * Pauses audio for current video
- */
-function pauseYouTubeAudio() {
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (iframe && iframe.contentWindow) {
+    const currentRealTime = Date.now() / 1000;
+    const elapsedSinceUpdate = currentRealTime - state.lastUpdateTime;
+    const currentEstimatedTime =
+      state.estimatedCurrentTime + elapsedSinceUpdate;
+    const duration = state.videoData[state.currentVideoId]?.duration || 100;
+
+    updateTimeDisplay(currentEstimatedTime, duration);
+    requestCurrentTime();
+  }
+
+  /**
+   * Requests current time from the YouTube iframe
+   */
+  function requestCurrentTime() {
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
+
     try {
       iframe.contentWindow.postMessage(
         JSON.stringify({
-          event: "command",
-          func: "pauseVideo",
-          args: [],
+          event: "listening",
+          id: iframe.id,
         }),
-        "*"
+        "https://www.youtube.com"
       );
 
-      if (timeUpdateInterval) {
-        clearInterval(timeUpdateInterval);
-        timeUpdateInterval = null;
-      }
+      iframe.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: "getCurrentTime",
+          args: [],
+        }),
+        "https://www.youtube.com"
+      );
+
+      iframe.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: "getDuration",
+          args: [],
+        }),
+        "https://www.youtube.com"
+      );
+
+      iframe.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: "getPlayerState",
+          args: [],
+        }),
+        "https://www.youtube.com"
+      );
     } catch (e) {
-      console.error("Error pausing video:", e);
+      console.error("Error requesting data from YouTube iframe:", e);
     }
   }
 
-  isPlaying = false;
-  updateYouTubePlayPauseButton();
-}
+  /**
+   * Updates time display with current time and duration
+   * @param {number} currentTime - Current playback position in seconds
+   * @param {number} duration - Total video duration in seconds
+   */
+  function updateTimeDisplay(currentTime, duration) {
+    if (!dom["yt-current-time"] || !dom["yt-duration"] || !dom["yt-progress"]) {
+      return;
+    }
 
-/**
- * Formats time in MM:SS format
- * @param {number} seconds - Time in seconds
- * @returns {string} - Formatted time string
- */
-function formatYouTubeTime(seconds) {
-  seconds = Math.floor(seconds);
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
-}
+    if (!duration && state.videoData[state.currentVideoId]) {
+      duration = state.videoData[state.currentVideoId].duration;
+    }
 
-/**
- * Handles progress bar change events
- */
-function handleYouTubeProgressChange() {
-  const progressBar = document.getElementById("yt-progress");
-  if (!progressBar) return;
+    dom["yt-current-time"].textContent = formatTime(currentTime);
 
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (!iframe || !iframe.contentWindow) return;
+    if (duration) {
+      dom["yt-duration"].textContent = formatTime(duration);
+    }
 
-  const percent = parseInt(progressBar.value);
-  let duration = 0;
-
-  if (videoData[currentVideoId]) {
-    duration = videoData[currentVideoId].duration;
+    if (
+      duration &&
+      !dom["yt-progress"].getAttribute("dragging") &&
+      duration > 0
+    ) {
+      dom["yt-progress"].value = Math.min((currentTime / duration) * 100, 100);
+    }
   }
 
-  if (!duration) {
-    const durationDisplay = document.getElementById("yt-duration");
-    if (durationDisplay) {
-      const parts = durationDisplay.textContent.split(":");
+  /**
+   * Handles YouTube player state changes
+   * @param {number} state - Player state code
+   */
+  function handlePlayerStateChange(state) {
+    switch (state) {
+      case 1:
+        state.isPlaying = true;
+        updatePlayPauseButton();
+        break;
+      case 2:
+        state.isPlaying = false;
+        updatePlayPauseButton();
+        break;
+      case 0:
+        state.isPlaying = false;
+        updatePlayPauseButton();
+
+        if (state.timeUpdateInterval) {
+          clearInterval(state.timeUpdateInterval);
+          state.timeUpdateInterval = null;
+        }
+
+        const duration = state.videoData[state.currentVideoId]?.duration || 0;
+        updateTimeDisplay(duration, duration);
+        playNextVideo();
+        break;
+    }
+  }
+
+  /**
+   * Updates play/pause button display based on playback state
+   */
+  function updatePlayPauseButton() {
+    if (dom["yt-play-pause"]) {
+      dom["yt-play-pause"].textContent = state.isPlaying ? "⏸️" : "▶️";
+    }
+  }
+
+  /**
+   * Toggles play/pause state
+   */
+  function togglePlayPause() {
+    if (state.isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio();
+    }
+  }
+
+  /**
+   * Plays audio for current video
+   */
+  function playAudio() {
+    if (!state.currentVideoId) {
+      return;
+    }
+
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "playVideo",
+            args: [],
+          }),
+          "*"
+        );
+
+        state.lastUpdateTime = Date.now() / 1000;
+
+        if (!state.timeUpdateInterval) {
+          state.timeUpdateInterval = setInterval(
+            updateProgressWithEstimate,
+            250
+          );
+        }
+      } catch (e) {
+        console.error("Error playing video:", e);
+      }
+    }
+
+    state.isPlaying = true;
+    updatePlayPauseButton();
+  }
+
+  /**
+   * Pauses audio for current video
+   */
+  function pauseAudio() {
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "pauseVideo",
+            args: [],
+          }),
+          "*"
+        );
+
+        if (state.timeUpdateInterval) {
+          clearInterval(state.timeUpdateInterval);
+          state.timeUpdateInterval = null;
+        }
+      } catch (e) {
+        console.error("Error pausing video:", e);
+      }
+    }
+
+    state.isPlaying = false;
+    updatePlayPauseButton();
+  }
+
+  /**
+   * Formats time in MM:SS format
+   * @param {number} seconds - Time in seconds
+   * @returns {string} - Formatted time string
+   */
+  function formatTime(seconds) {
+    seconds = Math.floor(seconds);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
+  }
+
+  /**
+   * Handles progress bar change events
+   */
+  function handleProgressChange() {
+    if (!dom["yt-progress"]) {
+      return;
+    }
+
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
+
+    const percent = parseInt(dom["yt-progress"].value);
+    let duration = 0;
+
+    if (state.videoData[state.currentVideoId]) {
+      duration = state.videoData[state.currentVideoId].duration;
+    }
+
+    if (!duration && dom["yt-duration"]) {
+      const parts = dom["yt-duration"].textContent.split(":");
       if (parts.length === 2) {
         duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
       }
     }
-  }
 
-  if (!duration) {
-    duration = 100;
-  }
+    if (!duration) {
+      duration = 100;
+    }
 
-  const seekToTime = (percent / 100) * duration;
+    const seekToTime = (percent / 100) * duration;
 
-  try {
-    iframe.contentWindow.postMessage(
-      JSON.stringify({
-        event: "command",
-        func: "seekTo",
-        args: [seekToTime, true],
-      }),
-      "*"
-    );
-
-    estimatedCurrentTime = seekToTime;
-    lastUpdateTime = Date.now() / 1000;
-    updateTimeDisplay(seekToTime, duration);
-  } catch (e) {
-    console.error("Error seeking:", e);
-  }
-}
-
-/**
- * Handles volume slider changes
- */
-function handleYouTubeVolumeChange() {
-  const volumeSlider = document.getElementById("yt-volume-slider");
-  const volumeIcon = document.getElementById("yt-volume-icon");
-
-  if (!volumeSlider || !volumeIcon) return;
-
-  const volume = volumeSlider.value;
-
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (iframe && iframe.contentWindow) {
     try {
       iframe.contentWindow.postMessage(
         JSON.stringify({
           event: "command",
-          func: "setVolume",
-          args: [volume],
+          func: "seekTo",
+          args: [seekToTime, true],
         }),
         "*"
       );
+
+      state.estimatedCurrentTime = seekToTime;
+      state.lastUpdateTime = Date.now() / 1000;
+      updateTimeDisplay(seekToTime, duration);
     } catch (e) {
-      console.error("Error setting volume:", e);
+      console.error("Error seeking:", e);
     }
   }
 
-  if (volume == 0) {
-    volumeIcon.textContent = "🔇";
-  } else if (volume < 50) {
-    volumeIcon.textContent = "🔈";
-  } else {
-    volumeIcon.textContent = "🔊";
-  }
-}
+  /**
+   * Handles volume slider changes
+   */
+  function handleVolumeChange() {
+    if (!dom["yt-volume-slider"] || !dom["yt-volume-icon"]) {
+      return;
+    }
 
-/**
- * Toggles mute state
- */
-function toggleYouTubeMute() {
-  const volumeIcon = document.getElementById("yt-volume-icon");
-  if (!volumeIcon) return;
+    const volume = dom["yt-volume-slider"].value;
 
-  const iframe = document.getElementById("youtube-player-iframe");
-  if (!iframe || !iframe.contentWindow) return;
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "setVolume",
+            args: [volume],
+          }),
+          "*"
+        );
+      } catch (e) {
+        console.error("Error setting volume:", e);
+      }
+    }
 
-  const isMuted = volumeIcon.textContent === "🔇";
-
-  try {
-    if (isMuted) {
-      iframe.contentWindow.postMessage(
-        JSON.stringify({
-          event: "command",
-          func: "unMute",
-          args: [],
-        }),
-        "*"
-      );
-      volumeIcon.textContent = "🔊";
+    if (volume == 0) {
+      dom["yt-volume-icon"].textContent = "🔇";
+    } else if (volume < 50) {
+      dom["yt-volume-icon"].textContent = "🔈";
     } else {
-      iframe.contentWindow.postMessage(
-        JSON.stringify({
-          event: "command",
-          func: "mute",
-          args: [],
-        }),
-        "*"
-      );
-      volumeIcon.textContent = "🔇";
+      dom["yt-volume-icon"].textContent = "🔊";
     }
-  } catch (e) {
-    console.error("Error toggling mute:", e);
   }
-}
 
-/**
- * Plays next video in playlist
- */
-function playNextYouTubeVideo() {
-  if (!currentVideoId || currentResultsList.length === 0) return;
+  /**
+   * Toggles mute state
+   */
+  function toggleMute() {
+    if (!dom["yt-volume-icon"]) {
+      return;
+    }
 
-  const currentIndex = currentResultsList.findIndex(
-    (video) => video.id === currentVideoId
-  );
+    const iframe = document.getElementById("youtube-player-iframe");
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
 
-  if (currentIndex !== -1 && currentIndex < currentResultsList.length - 1) {
-    const nextVideo = currentResultsList[currentIndex + 1];
-    playYouTubeVideo(nextVideo.id, nextVideo.title, nextVideo.thumbnailUrl);
+    const isMuted = dom["yt-volume-icon"].textContent === "🔇";
 
-    const nextResultItem = document.querySelector(
-      `.result-item[data-index="${currentIndex + 1}"]`
+    try {
+      if (isMuted) {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "unMute",
+            args: [],
+          }),
+          "*"
+        );
+        dom["yt-volume-icon"].textContent = "🔊";
+      } else {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "mute",
+            args: [],
+          }),
+          "*"
+        );
+        dom["yt-volume-icon"].textContent = "🔇";
+      }
+    } catch (e) {
+      console.error("Error toggling mute:", e);
+    }
+  }
+
+  /**
+   * Plays next video in playlist
+   */
+  function playNextVideo() {
+    if (!state.currentVideoId || state.currentResultsList.length === 0) {
+      return;
+    }
+
+    const currentIndex = state.currentResultsList.findIndex(
+      (video) => video.id === state.currentVideoId
     );
-    if (nextResultItem) {
-      highlightYouTubeResult(nextResultItem);
-      nextResultItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    if (
+      currentIndex !== -1 &&
+      currentIndex < state.currentResultsList.length - 1
+    ) {
+      const nextVideo = state.currentResultsList[currentIndex + 1];
+      playVideo(nextVideo.id, nextVideo.title, nextVideo.thumbnailUrl);
+
+      const nextResultItem = document.querySelector(
+        `.result-item[data-index="${currentIndex + 1}"]`
+      );
+      if (nextResultItem) {
+        highlightResult(nextResultItem);
+        nextResultItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     }
   }
-}
 
-/**
- * Highlights active result in the list
- * @param {HTMLElement} element - Result element to highlight
- */
-function highlightYouTubeResult(element) {
-  const activeResult = document.querySelector(".result-item.active");
-  if (activeResult) {
-    activeResult.classList.remove("active");
+  /**
+   * Highlights active result in the list
+   * @param {HTMLElement} element - Result element to highlight
+   */
+  function highlightResult(element) {
+    const activeResult = document.querySelector(".result-item.active");
+    if (activeResult) {
+      activeResult.classList.remove("active");
+    }
+    element.classList.add("active");
   }
-  element.classList.add("active");
-}
 
-/**
- * Shows or hides the loading indicator
- * @param {boolean} show - Whether to show or hide the loading indicator
- */
-function showYouTubeLoading(show) {
-  const loadingElement = document.getElementById("yt-loading");
-  if (loadingElement) {
-    loadingElement.style.display = show ? "block" : "none";
+  /**
+   * Shows or hides the loading indicator
+   * @param {boolean} show - Whether to show or hide the loading indicator
+   */
+  function showLoading(show) {
+    if (dom["yt-loading"]) {
+      dom["yt-loading"].style.display = show ? "block" : "none";
+    }
   }
-}
 
-/**
- * Shows search results section
- */
-function showYouTubeResults() {
-  const resultsHeading = document.getElementById("yt-results-heading");
-  const noResultsElement = document.getElementById("yt-no-results");
-  const resultsContainer = document.getElementById("yt-results-container");
-
-  if (resultsHeading) resultsHeading.style.display = "block";
-  if (noResultsElement) noResultsElement.style.display = "none";
-  if (resultsContainer) resultsContainer.style.display = "block";
-}
-
-/**
- * Shows no results message
- */
-function showYouTubeNoResults() {
-  const resultsHeading = document.getElementById("yt-results-heading");
-  const noResultsElement = document.getElementById("yt-no-results");
-  const resultsContainer = document.getElementById("yt-results-container");
-
-  if (resultsHeading) resultsHeading.style.display = "none";
-  if (noResultsElement) noResultsElement.style.display = "block";
-  if (resultsContainer) resultsContainer.style.display = "none";
-}
-
-/**
- * Hides results section
- */
-function hideYouTubeResults() {
-  const resultsHeading = document.getElementById("yt-results-heading");
-  const noResultsElement = document.getElementById("yt-no-results");
-  const resultsContainer = document.getElementById("yt-results-container");
-
-  if (resultsHeading) resultsHeading.style.display = "none";
-  if (noResultsElement) noResultsElement.style.display = "none";
-  if (resultsContainer) resultsContainer.style.display = "none";
-}
-
-/**
- * Shows error message
- * @param {string} message - Error message to display
- */
-function showYouTubeError(message) {
-  const errorMessageElement = document.getElementById("yt-error-message");
-  if (errorMessageElement) {
-    errorMessageElement.textContent = message;
-    errorMessageElement.style.display = "block";
+  /**
+   * Shows search results section
+   */
+  function showResults() {
+    if (dom["yt-results-heading"]) {
+      dom["yt-results-heading"].style.display = "block";
+    }
+    if (dom["yt-no-results"]) {
+      dom["yt-no-results"].style.display = "none";
+    }
+    if (dom["yt-results-container"]) {
+      dom["yt-results-container"].style.display = "block";
+    }
   }
-}
 
-/**
- * Hides error message
- */
-function hideYouTubeError() {
-  const errorMessageElement = document.getElementById("yt-error-message");
-  if (errorMessageElement) {
-    errorMessageElement.style.display = "none";
+  /**
+   * Shows no results message
+   */
+  function showNoResults() {
+    if (dom["yt-results-heading"]) {
+      dom["yt-results-heading"].style.display = "none";
+    }
+    if (dom["yt-no-results"]) {
+      dom["yt-no-results"].style.display = "block";
+    }
+    if (dom["yt-results-container"]) {
+      dom["yt-results-container"].style.display = "none";
+    }
   }
-}
 
-/**
- * Cleans up resources when page unloads
- */
-window.addEventListener("beforeunload", function () {
-  if (timeUpdateInterval) {
-    clearInterval(timeUpdateInterval);
+  /**
+   * Hides results section
+   */
+  function hideResults() {
+    if (dom["yt-results-heading"]) {
+      dom["yt-results-heading"].style.display = "none";
+    }
+    if (dom["yt-no-results"]) {
+      dom["yt-no-results"].style.display = "none";
+    }
+    if (dom["yt-results-container"]) {
+      dom["yt-results-container"].style.display = "none";
+    }
   }
-});
+
+  /**
+   * Shows error message
+   * @param {string} message - Error message to display
+   */
+  function showError(message) {
+    if (dom["yt-error-message"]) {
+      dom["yt-error-message"].textContent = message;
+      dom["yt-error-message"].style.display = "block";
+    }
+  }
+
+  /**
+   * Hides error message
+   */
+  function hideError() {
+    if (dom["yt-error-message"]) {
+      dom["yt-error-message"].style.display = "none";
+    }
+  }
+
+  /**
+   * Cleans up resources when page unloads
+   */
+  function cleanup() {
+    if (state.timeUpdateInterval) {
+      clearInterval(state.timeUpdateInterval);
+    }
+  }
+
+  return {
+    initialize,
+    toggleSidepanel,
+    showSidepanel,
+  };
+})();
 
 /**
  * Initializes YouTube sidepanel when components are loaded
  */
 document.addEventListener("componentsLoaded", () => {
-  initializeYouTubeSidepanel();
+  YouTubeSidepanel.initialize();
 });
+
+/**
+ * Global function to toggle the YouTube sidepanel
+ */
+function toggleYouTubeSidepanel() {
+  YouTubeSidepanel.toggleSidepanel();
+}
+
+/**
+ * Global function to show the YouTube sidepanel
+ */
+function showYouTubeSidepanel() {
+  YouTubeSidepanel.showSidepanel();
+}
