@@ -22,6 +22,14 @@
 - Add, edit, and delete custom search engines with your preferred icons
 - Quickly switch between engines with a single click
 
+### 🎵 YouTube Audio Player
+
+- Listen to YouTube videos in the background while you work
+- Search for videos without leaving your new tab using the sidepanel by clicking on the youtube icon
+- Control playback with play/pause, seek, and volume controls
+- Create an instant playlist from your search results
+> Note: Currently works only while the new tab remains open
+
 ### 📅 Timed Tab Recall
 
 - Schedule tabs to open at specific times
@@ -108,6 +116,7 @@ NewTab+ automatically replaces your new tab page with a productivity dashboard:
 3. **To-Dos**: Create, prioritize and track tasks with due dates
 4. **Reminders**: Set up alerts for important events and deadlines
 5. **Calendar**: View your scheduled items in an intuitive calendar format
+6. **YouTube Audio Player**: Listen to YouTube videos in the background while managing your tasks
 
 ## 🤝 Contributing
 

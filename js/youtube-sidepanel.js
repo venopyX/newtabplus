@@ -492,7 +492,15 @@ const YouTubeSidepanel = (() => {
    */
   function updatePlayPauseButton() {
     if (dom["yt-play-pause"]) {
-      dom["yt-play-pause"].textContent = state.isPlaying ? "⏸️" : "▶️";
+      const iconElement =
+        dom["yt-play-pause"].querySelector("i") || document.createElement("i");
+      iconElement.className = state.isPlaying ? "fas fa-pause" : "fas fa-play";
+
+      // If the icon doesn't exist yet, append it
+      if (!dom["yt-play-pause"].contains(iconElement)) {
+        dom["yt-play-pause"].innerHTML = "";
+        dom["yt-play-pause"].appendChild(iconElement);
+      }
     }
   }
 
@@ -662,12 +670,21 @@ const YouTubeSidepanel = (() => {
       }
     }
 
-    if (volume == 0) {
-      dom["yt-volume-icon"].textContent = "🔇";
-    } else if (volume < 50) {
-      dom["yt-volume-icon"].textContent = "🔈";
+    // Update volume icon
+    const iconElement =
+      dom["yt-volume-icon"].querySelector("i") || document.createElement("i");
+    if (parseInt(volume) === 0) {
+      iconElement.className = "fas fa-volume-mute";
+    } else if (parseInt(volume) < 50) {
+      iconElement.className = "fas fa-volume-down";
     } else {
-      dom["yt-volume-icon"].textContent = "🔊";
+      iconElement.className = "fas fa-volume-up";
+    }
+
+    // If the icon doesn't exist yet, append it
+    if (!dom["yt-volume-icon"].contains(iconElement)) {
+      dom["yt-volume-icon"].innerHTML = "";
+      dom["yt-volume-icon"].appendChild(iconElement);
     }
   }
 
@@ -684,7 +701,9 @@ const YouTubeSidepanel = (() => {
       return;
     }
 
-    const isMuted = dom["yt-volume-icon"].textContent === "🔇";
+    const iconElement = dom["yt-volume-icon"].querySelector("i");
+    const isMuted =
+      iconElement && iconElement.classList.contains("fa-volume-mute");
 
     try {
       if (isMuted) {
@@ -696,7 +715,21 @@ const YouTubeSidepanel = (() => {
           }),
           "*"
         );
-        dom["yt-volume-icon"].textContent = "🔊";
+        const iconElement =
+          dom["yt-volume-icon"].querySelector("i") ||
+          document.createElement("i");
+        iconElement.className = "fas fa-volume-up";
+
+        // If the icon doesn't exist yet, append it
+        if (!dom["yt-volume-icon"].contains(iconElement)) {
+          dom["yt-volume-icon"].innerHTML = "";
+          dom["yt-volume-icon"].appendChild(iconElement);
+        }
+
+        // Reset volume slider
+        if (dom["yt-volume-slider"]) {
+          dom["yt-volume-slider"].value = 100;
+        }
       } else {
         iframe.contentWindow.postMessage(
           JSON.stringify({
@@ -706,7 +739,16 @@ const YouTubeSidepanel = (() => {
           }),
           "*"
         );
-        dom["yt-volume-icon"].textContent = "🔇";
+        const iconElement =
+          dom["yt-volume-icon"].querySelector("i") ||
+          document.createElement("i");
+        iconElement.className = "fas fa-volume-mute";
+
+        // If the icon doesn't exist yet, append it
+        if (!dom["yt-volume-icon"].contains(iconElement)) {
+          dom["yt-volume-icon"].innerHTML = "";
+          dom["yt-volume-icon"].appendChild(iconElement);
+        }
       }
     } catch (e) {
       console.error("Error toggling mute:", e);
