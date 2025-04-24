@@ -305,20 +305,89 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   color: var(--text-color);
   font-size: 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
 #calendar-toggle-btn:hover {
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+  background-color: rgba(var(--primary-color-rgb), 0.15);
   color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px) rotate(5deg);
+  box-shadow: 0 5px 12px rgba(var(--primary-color-rgb), 0.2);
+}
+
+#calendar-toggle-btn:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(var(--primary-color-rgb), 0.2) 0%, transparent 70%);
+  animation: pulse 1.5s infinite;
 }
 
 #calendar-toggle-btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(var(--primary-color-rgb), 0.1);
+}
+
+#youtube-toggle-btn {
+  background-color: var(--hover-bg-color);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: var(--text-color);
+  font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#youtube-toggle-btn:hover {
+  background-color: rgba(255, 0, 0, 0.15);
+  color: #ff0000;
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 5px 12px rgba(255, 0, 0, 0.25);
+}
+
+#youtube-toggle-btn:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 0, 0, 0.2) 0%, transparent 70%);
+  animation: pulse 1.5s infinite;
+}
+
+#youtube-toggle-btn:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 5px rgba(255, 0, 0, 0.1);
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
 }
 
 .theme-controls {

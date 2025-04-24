@@ -7,6 +7,10 @@ const ComponentLoader = {
   components: [
     { id: "header-container", path: "../components/header.html" },
     { id: "calendar-container", path: "../components/calendar.html" },
+    {
+      id: "youtube-sidepanel-container",
+      path: "../components/youtube-sidepanel.html",
+    },
   ],
 
   dashboardCards: [

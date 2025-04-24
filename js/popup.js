@@ -78,6 +78,22 @@ document.addEventListener("DOMContentLoaded", function () {
     window.close();
   });
 
+  // Open YouTube sidepanel
+  document
+    .getElementById("open-youtube")
+    .addEventListener("click", function () {
+      chrome.tabs.create({ url: "chrome://newtab/" }, function (tab) {
+        // Send message to open YouTube sidepanel
+        chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+          if (tabId === tab.id && changeInfo.status === "complete") {
+            chrome.tabs.sendMessage(tabId, { action: "openYouTubeSidepanel" });
+            chrome.tabs.onUpdated.removeListener(listener);
+          }
+        });
+      });
+      window.close();
+    });
+
   // Open options
   document
     .getElementById("open-options")
