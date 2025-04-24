@@ -392,3 +392,19 @@
     right: -320px;
   }
 }
+
+/* Make sure the play/pause icon is always white in dark mode */
+[data-theme="dark"] .play-pause i {
+  color: white;
+}
+
+/* Make sure the play/pause icon is black in light mode too for consistent accent button */
+[data-theme="light"] .play-pause i {
+  color: black;
+}
+
+/* Dark theme specific adjustments */
+[data-theme="dark"] .spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-color);
+}
