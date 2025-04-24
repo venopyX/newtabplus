@@ -9,7 +9,7 @@ let isPlaying = false;
 let currentResultsList = [];
 let playerReady = false;
 let timeUpdateInterval = null;
-let videoData = {}; 
+let videoData = {};
 let estimatedCurrentTime = 0;
 let lastUpdateTime = 0;
 
@@ -349,7 +349,7 @@ function requestCurrentTime() {
         event: "listening",
         id: iframe.id,
       }),
-      "*"
+      "https://www.youtube.com"
     );
 
     iframe.contentWindow.postMessage(
@@ -358,7 +358,7 @@ function requestCurrentTime() {
         func: "getCurrentTime",
         args: [],
       }),
-      "*"
+      "https://www.youtube.com"
     );
 
     iframe.contentWindow.postMessage(
@@ -367,7 +367,7 @@ function requestCurrentTime() {
         func: "getDuration",
         args: [],
       }),
-      "*"
+      "https://www.youtube.com"
     );
 
     iframe.contentWindow.postMessage(
@@ -376,7 +376,7 @@ function requestCurrentTime() {
         func: "getPlayerState",
         args: [],
       }),
-      "*"
+      "https://www.youtube.com"
     );
   } catch (e) {
     console.error("Error requesting data from YouTube iframe:", e);
