@@ -101,6 +101,13 @@ function setupYouTubePlayer() {
  * @param {MessageEvent} event - Message event containing data from YouTube iframe
  */
 function handleYouTubeMessages(event) {
+  // Define trusted origins for security
+  const trustedOrigins = ["https://www.youtube.com", "https://youtube.com"];
+  if (!trustedOrigins.includes(event.origin)) {
+    console.warn("Untrusted message origin:", event.origin);
+    return;
+  }
+
   if (!event.data || typeof event.data !== "string") return;
 
   try {
