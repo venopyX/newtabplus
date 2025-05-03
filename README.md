@@ -24,11 +24,11 @@
 
 ### 🎵 YouTube Audio Player
 
-- Listen to YouTube videos in the background while you work
-- Search for videos without leaving your new tab using the sidepanel by clicking on the youtube icon
+- Listen to YouTube videos in a dedicated player window while you browse
+- Search videos, create favorites, manage queues and build custom playlists
 - Control playback with play/pause, seek, and volume controls
-- Create an instant playlist from your search results
-> Note: Currently works only while the new tab remains open
+- Seamlessly continue playback across browsing sessions
+- Access your video library with a single click on the YouTube icon
 
 ### 📅 Timed Tab Recall
 

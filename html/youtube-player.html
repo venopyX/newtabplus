@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Player - NewTab+</title>
+    <link rel="stylesheet" href="../css/index.css" />
+    <link rel="stylesheet" href="../css/youtube-player.css" />
+    <link rel="stylesheet" href="../lib/fontawesome-v6.7.2/all.min.css" />
+  </head>
+  <body>
+    <div class="youtube-player-app">
+      <header class="player-header">
+        <h1><i class="fab fa-youtube"></i> YouTube Player</h1>
+      </header>
+
+      <div class="player-content">
+        <!-- Main sections container -->
+        <div class="player-sections">
+          <!-- Tab navigation -->
+          <div class="tab-nav">
+            <button id="tab-search" class="tab active" data-tab="search">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button id="tab-queue" class="tab" data-tab="queue">
+              <i class="fas fa-list"></i> Queue
+            </button>
+            <button id="tab-favorites" class="tab" data-tab="favorites">
+              <i class="fas fa-star"></i> Favorites
+            </button>
+            <button id="tab-playlists" class="tab" data-tab="playlists">
+              <i class="fas fa-icons"></i> Playlists
+            </button>
+          </div>
+
+          <!-- Search Tab Content -->
+          <div class="tab-content active" id="tab-content-search">
+            <div class="yt-search-container">
+              <input
+                type="text"
+                id="yt-search-input"
+                placeholder="Search YouTube..."
+              />
+              <button id="yt-search-button">Search</button>
+            </div>
+
+            <div class="loading" id="yt-loading">
+              <div class="spinner"></div>
+              <p>Loading...</p>
+            </div>
+
+            <p id="yt-error-message" class="error-message"></p>
+
+            <h3 id="yt-results-heading" style="display: none">Results</h3>
+
+            <div id="yt-no-results" style="display: none">
+              <p>No results found. Try another search.</p>
+            </div>
+
+            <div class="results-container" id="yt-results-container"></div>
+          </div>
+
+          <!-- Queue Tab Content -->
+          <div class="tab-content" id="tab-content-queue">
+            <h3>Current Queue</h3>
+            <div id="yt-queue-empty" class="empty-list-message">
+              Queue is empty. Add songs from search or favorites.
+            </div>
+            <div class="results-container" id="yt-queue-container"></div>
+            <div class="queue-actions">
+              <button id="yt-queue-clear" class="btn-secondary">
+                Clear Queue
+              </button>
+              <button id="yt-queue-save" class="btn-primary">
+                Save as Playlist
+              </button>
+            </div>
+          </div>
+
+          <!-- Favorites Tab Content -->
+          <div class="tab-content" id="tab-content-favorites">
+            <h3>Your Favorites</h3>
+            <div id="yt-favorites-empty" class="empty-list-message">
+              No favorites yet. Star videos to add them here.
+            </div>
+            <div class="results-container" id="yt-favorites-container"></div>
+            <div class="url-input-container">
+              <input
+                type="text"
+                id="yt-url-input"
+                placeholder="Add by YouTube URL..."
+              />
+              <button id="yt-add-by-url">Add</button>
+            </div>
+          </div>
+
+          <!-- Playlists Tab Content -->
+          <div class="tab-content" id="tab-content-playlists">
+            <h3>Your Playlists</h3>
+            <div id="yt-playlists-empty" class="empty-list-message">
+              No playlists yet. Create your first playlist.
+            </div>
+            <div class="playlists-list" id="yt-playlists-list"></div>
+            <div class="playlist-actions">
+              <button id="yt-create-playlist" class="btn-primary">
+                Create Playlist
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Player section fixed at bottom -->
+        <div class="player-container" id="yt-player-container">
+          <div class="player-info">
+            <img
+              class="now-playing-thumbnail"
+              id="yt-now-playing-thumbnail"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 34' fill='%23ddd'%3E%3Crect width='60' height='34'/%3E%3Cpath d='M30 17 L42 10 L42 24 L30 17 Z' fill='%23aaa'/%3E%3C/svg%3E"
+              alt="Now playing"
+            />
+            <div class="now-playing-info">
+              <div class="now-playing-title" id="yt-now-playing-title">
+                Nothing playing
+              </div>
+              <div class="now-playing-actions">
+                <button
+                  id="yt-now-playing-favorite"
+                  class="icon-button"
+                  title="Add to favorites"
+                >
+                  <i class="far fa-star"></i>
+                </button>
+                <button
+                  id="yt-now-playing-queue"
+                  class="icon-button"
+                  title="Add to queue"
+                >
+                  <i class="fas fa-list-ol"></i>
+                </button>
+                <button
+                  id="yt-now-playing-playlist"
+                  class="icon-button"
+                  title="Add to playlist"
+                >
+                  <i class="fas fa-icons"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <!-- Seekbar row at top -->
+            <div class="seekbar-container">
+              <div class="time" id="yt-current-time">0:00</div>
+              <div class="timeline">
+                <input
+                  type="range"
+                  class="progress"
+                  id="yt-progress"
+                  min="0"
+                  max="100"
+                  value="0"
+                />
+              </div>
+              <div class="time" id="yt-duration">0:00</div>
+            </div>
+
+            <!-- Player controls row below -->
+            <div class="player-controls">
+              <button class="play-pause" id="yt-play-pause" title="Play/Pause">
+                <i class="fas fa-play"></i>
+              </button>
+              <div class="control-buttons">
+                <button id="yt-prev" class="control-button" title="Previous">
+                  <i class="fas fa-step-backward"></i>
+                </button>
+                <button id="yt-next" class="control-button" title="Next">
+                  <i class="fas fa-step-forward"></i>
+                </button>
+              </div>
+              <div class="volume-container">
+                <span class="volume-icon" id="yt-volume-icon" title="Volume">
+                  <i class="fas fa-volume-up"></i>
+                </span>
+                <input
+                  type="range"
+                  class="volume-slider"
+                  id="yt-volume-slider"
+                  min="0"
+                  max="100"
+                  value="100"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playlist Modal -->
+    <div id="yt-playlist-modal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="yt-playlist-modal-title">Create Playlist</h3>
+            <button class="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="playlist-name">Playlist Name</label>
+              <input
+                type="text"
+                id="playlist-name"
+                placeholder="Enter playlist name"
+              />
+            </div>
+            <div class="form-group">
+              <label for="playlist-description">Description (optional)</label>
+              <textarea
+                id="playlist-description"
+                rows="3"
+                placeholder="Enter playlist description"
+              ></textarea>
+            </div>
+            <div
+              id="playlist-tracks-container"
+              class="hidden"
+              style="margin-top: 20px"
+            >
+              <label>Playlist Tracks</label>
+              <div id="playlist-tracks-list"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="yt-playlist-cancel" class="btn-secondary">
+              Cancel
+            </button>
+            <button id="yt-playlist-save" class="btn-primary">
+              Save Playlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add to playlist modal -->
+    <div id="yt-add-to-playlist-modal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Add to Playlist</h3>
+            <button class="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="yt-no-playlists-message">
+              You don't have any playlists yet. Create one now?
+            </p>
+            <div id="yt-playlists-for-selection"></div>
+          </div>
+          <div class="modal-footer">
+            <button id="yt-add-to-playlist-cancel" class="btn-secondary">
+              Cancel
+            </button>
+            <button id="yt-create-and-add" class="btn-primary">
+              Create New Playlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="youtube-player-container" style="display: none"></div>
+
+    <script src="../js/youtube-player.js"></script>
+  </body>
+</html>
