@@ -21,5 +21,9 @@
   "action": {
     "default_popup": "html/popup.html",
     "default_title": "NewTab+"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": ["lib/*"],
+    "matches": ["<all_urls>"]
+  }]
 }
