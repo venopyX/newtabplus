@@ -1,7 +1,7 @@
 /**
  * YouTube Player styles for NewTab+
  */
- 
+
 /* Base styles */
 body,
 html {
@@ -154,6 +154,12 @@ html {
   background-color: var(--input-bg-color);
   color: var(--text-color);
   font-size: 0.9rem;
+}
+
+[data-theme="dark"] #yt-search-input {
+  background-color: var(--input-bg-color, #2a2a2a);
+  color: var(--text-color, #e0e0e0);
+  border-color: var(--border-color, #444);
 }
 
 #yt-search-button {
