@@ -34,11 +34,11 @@ const YouTubePlayer = (() => {
     setupPlayer();
     loadUserData();
 
-    // Check URL parameters for video ID
+    initTheme();
+
     const urlParams = new URLSearchParams(window.location.search);
     const videoId = urlParams.get("v");
     if (videoId) {
-      // Fetch video info and play it
       fetchVideoInfo(videoId)
         .then((info) => {
           if (info) {
@@ -53,6 +53,40 @@ const YouTubePlayer = (() => {
         .catch((err) => {
           console.error("Error fetching initial video:", err);
         });
+    }
+  }
+
+  /**
+   * Initializes theme functionality
+   */
+  function initTheme() {
+    chrome.storage.sync.get("theme", function (data) {
+      const savedTheme = data.theme || "system";
+      applyTheme(savedTheme);
+    });
+
+    chrome.storage.onChanged.addListener(function (changes) {
+      if (changes.theme) {
+        applyTheme(changes.theme.newValue);
+      }
+    });
+  }
+
+  /**
+   * Applies the selected theme
+   * @param {string} theme - Theme to apply (light, dark, or system)
+   */
+  function applyTheme(theme) {
+    if (theme === "system") {
+      const isDarkMode = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      document.documentElement.setAttribute(
+        "data-theme",
+        isDarkMode ? "dark" : "light"
+      );
+    } else {
+      document.documentElement.setAttribute("data-theme", theme);
     }
   }
 
@@ -247,6 +281,17 @@ const YouTubePlayer = (() => {
 
     window.addEventListener("message", handleMessages);
     window.addEventListener("beforeunload", cleanup);
+
+    // Add listener for system color scheme changes
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", () => {
+        chrome.storage.sync.get("theme", function (data) {
+          if (data.theme === "system") {
+            applyTheme("system");
+          }
+        });
+      });
   }
 
   function switchTab(tabId) {
@@ -1217,11 +1262,11 @@ const YouTubePlayer = (() => {
           }
           
           .notification.success {
-            background-color: #4caf50;
+            background-color: var(--priority-normal, #4caf50);
           }
           
           .notification.error {
-            background-color: #f44336;
+            background-color: var(--priority-high, #f44336);
           }
         `;
         document.head.appendChild(style);
