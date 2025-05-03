@@ -1,7 +1,7 @@
 /**
  * YouTube Player styles for NewTab+
  */
-
+ 
 /* Base styles */
 body,
 html {
@@ -11,7 +11,7 @@ html {
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
-  background-color: var(--bg-color);
+  background-color: var(--background-color);
   color: var(--text-color);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     sans-serif;
@@ -99,6 +99,18 @@ html {
   color: var(--primary-color);
   border-bottom: 2px solid var(--primary-color);
   font-weight: 500;
+}
+
+.tab i {
+  color: inherit;
+}
+
+[data-theme="dark"] .tab:not(.active) i {
+  color: #aaaaaa;
+}
+
+[data-theme="dark"] .tab.active i {
+  color: var(--primary-color);
 }
 
 /* Tab Content */
@@ -213,6 +225,15 @@ html {
   background-color: rgba(var(--primary-color-rgb), 0.05);
 }
 
+[data-theme="dark"] .result-item:hover {
+  background-color: #2a2a2a;
+}
+
+[data-theme="dark"] .result-item.active {
+  background-color: rgba(var(--primary-color-rgb), 0.2);
+  border-color: var(--primary-color);
+}
+
 .thumbnail {
   width: 120px;
   height: 68px;
@@ -303,6 +324,15 @@ html {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="dark"] .playlist-item {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+[data-theme="dark"] .playlist-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .playlist-cover {
   width: 60px;
   height: 60px;
@@ -312,9 +342,17 @@ html {
   background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 
+[data-theme="dark"] .playlist-cover {
+  background-color: rgba(var(--primary-color-rgb), 0.2);
+}
+
 .playlist-cover i {
   font-size: 24px;
   color: var(--primary-color);
+}
+
+[data-theme="dark"] .playlist-cover i {
+  color: var(--accent-color);
 }
 
 .playlist-info {
@@ -338,6 +376,10 @@ html {
   margin-top: 15px;
   display: flex;
   justify-content: center;
+}
+
+[data-theme="dark"] .playlist-actions .icon-button {
+  color: #cccccc;
 }
 
 .action-button {
@@ -401,6 +443,14 @@ html {
   gap: 8px;
 }
 
+.now-playing-actions .icon-button {
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .now-playing-actions .icon-button {
+  color: #cccccc;
+}
+
 .icon-button {
   background: none;
   border: none;
@@ -419,6 +469,15 @@ html {
 .icon-button.active i.far.fa-star {
   font-weight: 900;
   color: var(--accent-color);
+}
+
+[data-theme="dark"] .icon-button {
+  color: #aaaaaa;
+}
+
+[data-theme="dark"] .icon-button:hover {
+  color: var(--accent-color);
+  background-color: rgba(var(--accent-color-rgb), 0.2);
 }
 
 /* Controls */
@@ -477,6 +536,10 @@ html {
   border: none;
 }
 
+[data-theme="dark"] .progress {
+  background-color: #444;
+}
+
 .player-controls {
   display: flex;
   justify-content: space-between;
@@ -494,6 +557,11 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .play-pause {
+  color: #e0e0e0;
 }
 
 .control-buttons {
@@ -504,7 +572,7 @@ html {
 .control-button {
   background: none;
   border: none;
-  color: var(--text-secondary-color);
+  color: var(--text-color);
   font-size: 16px;
   cursor: pointer;
   padding: 5px;
@@ -518,6 +586,14 @@ html {
   color: var(--primary-color);
 }
 
+[data-theme="dark"] .control-button {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .control-button:hover {
+  color: var(--accent-color);
+}
+
 .volume-container {
   display: flex;
   align-items: center;
@@ -527,6 +603,11 @@ html {
   margin-right: 5px;
   font-size: 20px;
   cursor: pointer;
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .volume-icon {
+  color: #e0e0e0;
 }
 
 .volume-slider {
@@ -594,6 +675,10 @@ html {
   background-color: rgba(0, 0, 0, 0.5);
 }
 
+[data-theme="dark"] .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
 .modal-overlay.active {
   display: flex;
   align-items: center;
@@ -607,6 +692,10 @@ html {
   max-width: 90%;
   width: 480px;
   overflow: hidden;
+}
+
+[data-theme="dark"] .modal {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .modal-header {
@@ -627,7 +716,11 @@ html {
   border: none;
   cursor: pointer;
   font-size: 24px;
-  color: var(--text-secondary-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .close-modal {
+  color: #e0e0e0;
 }
 
 .modal-body {
@@ -644,6 +737,7 @@ html {
   gap: 10px;
 }
 
+/* Form Elements - Dark Mode Improvements */
 .form-group {
   margin-bottom: 15px;
 }
@@ -665,11 +759,19 @@ html {
   color: var(--text-color);
 }
 
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical;
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group textarea {
+  background-color: #2a2a2a;
+  border-color: #444;
 }
 
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
+}
+
+/* Button Improvements */
 .btn-primary,
 .btn-secondary {
   padding: 8px 15px;
@@ -698,6 +800,15 @@ html {
   background-color: var(--hover-bg-color);
 }
 
+[data-theme="dark"] .btn-secondary {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: #444;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .thumbnail {
@@ -715,4 +826,44 @@ html {
 [data-theme="dark"] .spinner {
   border: 3px solid rgba(255, 255, 255, 0.1);
   border-top-color: var(--accent-color);
+}
+
+/* Notification styling */
+.notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  border-radius: 4px;
+  background-color: var(--accent-color);
+  color: white;
+  z-index: 2000;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.notification.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.notification.error {
+  background-color: var(--priority-high);
+}
+
+/* Fix item actions in lists */
+.item-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-theme="dark"] .item-actions .icon-button {
+  color: #aaaaaa;
+}
+
+[data-theme="dark"] .tab-content .icon-button {
+  color: #bbb;
 }
