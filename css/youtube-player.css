@@ -31,8 +31,8 @@ html {
   align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--primary-color);
-  color: white;
+  background-color: #08082e;
+  color: #ffffff;
 }
 
 .player-header h1 {
@@ -45,6 +45,17 @@ html {
 
 .player-header h1 i {
   margin-right: 10px;
+  color: #ff0000;
+  font-size: 1.4rem;
+}
+
+[data-theme="dark"] .player-header {
+  background-color: #08082e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .player-header h1 i {
+  color: #ff0000;
 }
 
 /* Content area */
