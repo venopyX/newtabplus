@@ -4,25 +4,21 @@
 
 /* Modal overlay */
 .modal-overlay {
+  display: none;
   position: fixed;
-  top: 0;
+  z-index: 1000;
   left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
   background-color: var(--modal-overlay, rgba(0, 0, 0, 0.6));
-  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  backdrop-filter: blur(3px);
 }
 
 .modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
+  display: flex;
 }
 
 /* Modal container */
@@ -49,9 +45,27 @@
 /* Ensure the modal has solid background color */
 .modal-content {
   background-color: var(--card-bg-color, #ffffff);
+  margin: 0 auto;
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px var(--shadow-color, rgba(0, 0, 0, 0.25));
   position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: modalOpen 0.3s ease;
+}
+
+@keyframes modalOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Modal header */
@@ -59,8 +73,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px 12px;
   border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  padding-bottom: 15px;
+  margin-bottom: 20px;
   margin: -20px -20px 15px;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
@@ -71,33 +86,47 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
 .modal-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--primary-color);
 }
 
+/* Ensure close button icon is visible in all themes */
 .close-modal {
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--text-color);
   background: none;
   border: none;
-  color: var(--text-secondary-color);
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: color 0.2s;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
+  transition: all 0.2s;
   position: absolute;
   right: 15px;
   top: 15px;
 }
 
 .close-modal:hover {
-  color: var(--primary-color);
   background-color: var(--hover-bg-color, rgba(0, 0, 0, 0.05));
+}
+
+[data-theme="dark"] .close-modal {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .close-modal:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Modal body */
@@ -116,6 +145,16 @@
   margin-bottom: 8px;
   font-weight: 500;
   color: var(--text-primary-color, var(--text-color));
+}
+
+/* Fix icon visibility inside form group labels */
+.form-group label i {
+  color: var(--text-color);
+  margin-right: 5px;
+}
+
+[data-theme="dark"] .form-group label i {
+  color: #e0e0e0;
 }
 
 .form-control {
@@ -241,6 +280,39 @@ button[type="submit"]:active,
 button.btn-primary:active {
   transform: translateY(0);
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal action buttons with improved contrast */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.modal-actions button {
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Ensure button icons are visible in all themes */
+.modal-actions button i {
+  color: inherit;
+}
+
+.modal-delete {
+  color: white;
+  background-color: var(--priority-high);
+}
+
+.modal-delete:hover {
+  background-color: #d32f2f;
 }
 
 /* Specific modal styles */
