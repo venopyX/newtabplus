@@ -27,11 +27,20 @@ document.addEventListener("componentsLoaded", function () {
       }
     });
 
-  // YouTube toggle button
+  // YouTube toggle button - modified to open in new window
   const youtubeToggleBtn = document.getElementById("youtube-toggle-btn");
   if (youtubeToggleBtn) {
     youtubeToggleBtn.addEventListener("click", function () {
-      toggleYouTubeSidepanel();
+      // Default YouTube video ID or search page
+      const defaultVideoId = "dQw4w9WgXcQ"; // You can change this to your preferred default
+      const youtubePath = chrome.runtime.getURL("html/youtube-player.html");
+
+      // Open in a new window with specific dimensions
+      window.open(
+        youtubePath,
+        "youtube_player",
+        "width=800,height=600,status=no,scrollbars=yes"
+      );
     });
   }
 
@@ -76,9 +85,13 @@ function setupMessageListener() {
     }
 
     if (message.action === "openYouTubeSidepanel") {
-      if (typeof showYouTubeSidepanel === "function") {
-        showYouTubeSidepanel();
-      }
+      // Open YouTube player in new window instead of sidepanel
+      const youtubePath = chrome.runtime.getURL("html/youtube-player.html");
+      window.open(
+        youtubePath,
+        "youtube_player",
+        "width=800,height=600,status=no,scrollbars=yes"
+      );
       return true;
     }
 
