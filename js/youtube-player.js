@@ -1593,8 +1593,22 @@ const YouTubePlayer = (() => {
     // Update UI
     if (dom["yt-now-playing-title"])
       dom["yt-now-playing-title"].textContent = title;
-    if (dom["yt-now-playing-thumbnail"])
-      dom["yt-now-playing-thumbnail"].src = thumbnail;
+    if (dom["yt-now-playing-thumbnail"]) {
+      if (thumbnail && thumbnail.startsWith("http")) {
+        dom["yt-now-playing-thumbnail"].src = thumbnail;
+      } else {
+        dom[
+          "yt-now-playing-thumbnail"
+        ].src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      }
+      dom["yt-now-playing-thumbnail"].onerror = function () {
+        this.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        this.onerror = function () {
+          this.src =
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 34' fill='%23ddd'%3E%3Crect width='60' height='34'/%3E%3Cpath d='M30 17 L42 10 L42 24 L30 17 Z' fill='%23aaa'/%3E%3C/svg%3E";
+        };
+      };
+    }
 
     // Set up video with duration
     const duration = state.videoData[videoId]?.duration || 0;
