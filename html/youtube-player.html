@@ -11,7 +11,7 @@
   <body>
     <div class="youtube-player-app">
       <header class="player-header">
-        <h1><i class="fas fa-music"></i> YouTube Audio Player</h1>
+        <h1><i class="fab fa-youtube"></i> YouTube Player</h1>
       </header>
 
       <div class="player-content">
@@ -23,7 +23,7 @@
               <i class="fas fa-search"></i> Search
             </button>
             <button id="tab-queue" class="tab" data-tab="queue">
-              <i class="fas fa-list-ol"></i> Queue
+              <i class="fas fa-list"></i> Queue
             </button>
             <button id="tab-favorites" class="tab" data-tab="favorites">
               <i class="fas fa-star"></i> Favorites
@@ -39,22 +39,24 @@
               <input
                 type="text"
                 id="yt-search-input"
-                placeholder="Search for music or podcasts..."
+                placeholder="Search YouTube..."
               />
               <button id="yt-search-button">Search</button>
             </div>
 
             <div class="loading" id="yt-loading">
               <div class="spinner"></div>
-              <p>Searching...</p>
+              <p>Loading...</p>
             </div>
 
-            <div class="error-message" id="yt-error-message"></div>
+            <p id="yt-error-message" class="error-message"></p>
 
-            <h3 id="yt-results-heading">Search Results</h3>
-            <div id="yt-no-results">
-              No videos found. Try a different search term.
+            <h3 id="yt-results-heading" style="display: none">Results</h3>
+
+            <div id="yt-no-results" style="display: none">
+              <p>No results found. Try another search.</p>
             </div>
+
             <div class="results-container" id="yt-results-container"></div>
           </div>
 
@@ -62,48 +64,46 @@
           <div class="tab-content" id="tab-content-queue">
             <h3>Current Queue</h3>
             <div id="yt-queue-empty" class="empty-list-message">
-              Queue is empty
+              Queue is empty. Add songs from search or favorites.
             </div>
             <div class="results-container" id="yt-queue-container"></div>
             <div class="queue-actions">
-              <button id="yt-queue-clear" class="action-button">
-                <i class="fas fa-trash"></i> Clear Queue
+              <button id="yt-queue-clear" class="btn-secondary">
+                Clear Queue
               </button>
-              <button id="yt-queue-save" class="action-button">
-                <i class="fas fa-save"></i> Save as Playlist
+              <button id="yt-queue-save" class="btn-primary">
+                Save as Playlist
               </button>
             </div>
           </div>
 
           <!-- Favorites Tab Content -->
           <div class="tab-content" id="tab-content-favorites">
-            <h3>Favorites</h3>
+            <h3>Your Favorites</h3>
             <div id="yt-favorites-empty" class="empty-list-message">
-              No favorites added yet
+              No favorites yet. Star videos to add them here.
             </div>
             <div class="results-container" id="yt-favorites-container"></div>
             <div class="url-input-container">
               <input
                 type="text"
                 id="yt-url-input"
-                placeholder="Paste YouTube video URL..."
+                placeholder="Add by YouTube URL..."
               />
-              <button id="yt-add-by-url">
-                <i class="fas fa-plus"></i> Add to Favorites
-              </button>
+              <button id="yt-add-by-url">Add</button>
             </div>
           </div>
 
           <!-- Playlists Tab Content -->
           <div class="tab-content" id="tab-content-playlists">
-            <h3>Playlists</h3>
+            <h3>Your Playlists</h3>
             <div id="yt-playlists-empty" class="empty-list-message">
-              No playlists created yet
+              No playlists yet. Create your first playlist.
             </div>
             <div class="playlists-list" id="yt-playlists-list"></div>
             <div class="playlist-actions">
-              <button id="yt-create-playlist" class="action-button">
-                <i class="fas fa-plus"></i> Create New Playlist
+              <button id="yt-create-playlist" class="btn-primary">
+                Create Playlist
               </button>
             </div>
           </div>
@@ -116,7 +116,7 @@
               class="now-playing-thumbnail"
               id="yt-now-playing-thumbnail"
               src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 34' fill='%23ddd'%3E%3Crect width='60' height='34'/%3E%3Cpath d='M30 17 L42 10 L42 24 L30 17 Z' fill='%23aaa'/%3E%3C/svg%3E"
-              alt="Thumbnail"
+              alt="Now playing"
             />
             <div class="now-playing-info">
               <div class="now-playing-title" id="yt-now-playing-title">
@@ -126,21 +126,21 @@
                 <button
                   id="yt-now-playing-favorite"
                   class="icon-button"
-                  title="Add to Favorites"
+                  title="Add to favorites"
                 >
                   <i class="far fa-star"></i>
                 </button>
                 <button
                   id="yt-now-playing-queue"
                   class="icon-button"
-                  title="Add to Queue"
+                  title="Add to queue"
                 >
                   <i class="fas fa-list-ol"></i>
                 </button>
                 <button
                   id="yt-now-playing-playlist"
                   class="icon-button"
-                  title="Add to Playlist"
+                  title="Add to playlist"
                 >
                   <i class="fas fa-icons"></i>
                 </button>
@@ -166,7 +166,7 @@
 
             <!-- Player controls row below -->
             <div class="player-controls">
-              <button class="play-pause" id="yt-play-pause">
+              <button class="play-pause" id="yt-play-pause" title="Play/Pause">
                 <i class="fas fa-play"></i>
               </button>
               <div class="control-buttons">
@@ -178,7 +178,7 @@
                 </button>
               </div>
               <div class="volume-container">
-                <span class="volume-icon" id="yt-volume-icon">
+                <span class="volume-icon" id="yt-volume-icon" title="Volume">
                   <i class="fas fa-volume-up"></i>
                 </span>
                 <input
@@ -207,14 +207,26 @@
           <div class="modal-body">
             <div class="form-group">
               <label for="playlist-name">Playlist Name</label>
-              <input type="text" id="playlist-name" required />
+              <input
+                type="text"
+                id="playlist-name"
+                placeholder="Enter playlist name"
+              />
             </div>
             <div class="form-group">
-              <label for="playlist-description">Description (Optional)</label>
-              <textarea id="playlist-description" rows="3"></textarea>
+              <label for="playlist-description">Description (optional)</label>
+              <textarea
+                id="playlist-description"
+                rows="3"
+                placeholder="Enter playlist description"
+              ></textarea>
             </div>
-            <div id="playlist-tracks-container" class="hidden">
-              <label>Tracks</label>
+            <div
+              id="playlist-tracks-container"
+              class="hidden"
+              style="margin-top: 20px"
+            >
+              <label>Playlist Tracks</label>
               <div id="playlist-tracks-list"></div>
             </div>
           </div>
@@ -222,7 +234,9 @@
             <button id="yt-playlist-cancel" class="btn-secondary">
               Cancel
             </button>
-            <button id="yt-playlist-save" class="btn-primary">Save</button>
+            <button id="yt-playlist-save" class="btn-primary">
+              Save Playlist
+            </button>
           </div>
         </div>
       </div>
@@ -237,9 +251,9 @@
             <button class="close-modal">&times;</button>
           </div>
           <div class="modal-body">
-            <div id="yt-no-playlists-message" class="hidden">
-              <p>You don't have any playlists yet.</p>
-            </div>
+            <p id="yt-no-playlists-message">
+              You don't have any playlists yet. Create one now?
+            </p>
             <div id="yt-playlists-for-selection"></div>
           </div>
           <div class="modal-footer">
@@ -253,6 +267,8 @@
         </div>
       </div>
     </div>
+
+    <div id="youtube-player-container" style="display: none"></div>
 
     <script src="../js/youtube-player.js"></script>
   </body>
