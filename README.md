@@ -32,7 +32,7 @@
 
 ### 🔖 Bookmark Management
 
-- Organize bookmarks with a intuitive folder structure
+- Organize bookmarks with an intuitive folder structure
 - Add custom tags to categorize and quickly find your links
 - Powerful search capabilities across all your saved bookmarks
 - Clean, modern interface with list and grid views for easy navigation
