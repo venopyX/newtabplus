@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../lib/fontawesome-v6.7.2/all.min.css" />
+    <link rel="stylesheet" href="../css/bookmark-styles.css" />
+    <title>Bookmark Manager Plus</title>
+    <script src="../lib/tailwindcss_cdn_4.1.5/index.global.js"></script>
+    <!-- Force side-by-side layout -->
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      body {
+        background-color: transparent !important;
+      }
+      .container {
+        height: 100%;
+        overflow-y: auto;
+        padding: 0 !important;
+      }
+
+      @media (min-width: 768px) {
+        .main-content-row {
+          display: flex !important;
+          flex-direction: row !important;
+        }
+
+        .left-sidebar {
+          width: 33.333333% !important;
+          flex-shrink: 0;
+          padding-right: 1rem;
+          border-right: 1px solid #e2e8f0;
+        }
+
+        .dark .left-sidebar {
+          border-right-color: #334155;
+        }
+
+        .right-content {
+          width: 66.666667% !important;
+          flex-grow: 1;
+          padding-left: 1.5rem !important;
+        }
+      }
+
+      /* Modal positioning fix for iframe context */
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10000;
+      }
+
+      /* Ensure bookmark styles aren't affected by parent styles */
+      * {
+        box-sizing: border-box;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+          sans-serif;
+      }
+
+      /* Communication styles for parent integration */
+      .iframe-communicator {
+        display: none;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors"
+  >
+    <!-- Hidden element for parent-iframe communication -->
+    <div
+      id="iframe-communicator"
+      class="iframe-communicator"
+      data-state="ready"
+    ></div>
+
+    <div class="container w-full">
+      <header class="mb-6">
+        <!-- Top bar with logo and actions -->
+        <div class="flex justify-between items-center mb-5">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20"
+            >
+              <i class="fas fa-bookmark text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold">Bookmark Manager</h1>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              id="settings-btn"
+              class="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow"
+              title="Settings"
+            >
+              <i class="fas fa-cog"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search and filter bar -->
+        <div class="relative mb-5">
+          <div
+            class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
+          >
+            <i class="fas fa-search text-slate-400"></i>
+          </div>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search across all bookmarks..."
+            class="w-full p-4 pl-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+          />
+          <div class="absolute inset-y-0 right-4 flex items-center">
+            <div class="tooltip" data-tooltip="Global search is active">
+              <i
+                id="search-mode-indicator"
+                class="fas fa-globe text-indigo-500 cursor-pointer"
+              ></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons and view options -->
+        <div class="flex flex-wrap gap-3 mb-5">
+          <div class="flex gap-3">
+            <button
+              id="add-bookmark-btn"
+              class="flex items-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-sm shadow-indigo-200 dark:shadow-indigo-900/20 transition-all"
+            >
+              <i class="fas fa-bookmark"></i> Add Bookmark
+            </button>
+            <button
+              id="add-folder-btn"
+              class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl shadow-sm transition-all"
+            >
+              <i class="fas fa-folder-plus"></i> New Folder
+            </button>
+          </div>
+
+          <div class="flex-grow"></div>
+
+          <div class="flex items-center gap-3">
+            <select
+              id="sort-select"
+              class="px-4 py-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            >
+              <option value="title">Sort by Title</option>
+              <option value="dateAdded">Sort by Date Added</option>
+              <option value="url">Sort by URL</option>
+              <option value="visits">Sort by Visits</option>
+            </select>
+
+            <div
+              class="flex p-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm"
+            >
+              <button
+                id="view-list"
+                class="view-btn active p-2.5 rounded-lg transition-all"
+                title="List view"
+              >
+                <i class="fas fa-list"></i>
+              </button>
+              <button
+                id="view-grid"
+                class="view-btn p-2.5 rounded-lg transition-all"
+                title="Grid view"
+              >
+                <i class="fas fa-th-large"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breadcrumb Navigation -->
+        <nav
+          id="breadcrumb"
+          class="flex flex-wrap items-center text-sm mb-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm"
+        >
+          <button class="breadcrumb-btn" data-folder-id="0">
+            <i class="fas fa-home mr-1"></i> Root
+          </button>
+        </nav>
+      </header>
+
+      <!-- Main Content -->
+      <main class="bg-white dark:bg-slate-800 rounded-xl shadow-md mb-6">
+        <!-- Current location info -->
+        <div
+          id="current-folder-info"
+          class="p-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-700"
+        >
+          <h2 class="text-lg font-medium flex items-center">
+            <i class="fas fa-folder text-amber-400 mr-2"></i>
+            <span id="current-folder-name">Root</span>
+          </h2>
+          <div class="text-sm text-slate-500 dark:text-slate-400">
+            <span id="item-count">0 items</span>
+          </div>
+        </div>
+
+        <!-- Search results indicator -->
+        <div
+          id="search-results-indicator"
+          class="p-4 text-sm text-slate-600 dark:text-slate-400 hidden border-b border-slate-100 dark:border-slate-700"
+        >
+          Showing search results for "<span id="search-term"></span>"
+          <button
+            id="clear-search"
+            class="text-indigo-500 hover:underline ml-2"
+          >
+            <i class="fas fa-times"></i> Clear
+          </button>
+        </div>
+
+        <!-- Main content area with folders and bookmarks -->
+        <div style="display: flex; flex-direction: row">
+          <!-- Sidebar with folders and tags - LEFT SIDE -->
+          <div
+            style="
+              width: 33%;
+              flex-shrink: 0;
+              border-right: 1px solid #e2e8f0;
+              padding-right: 16px;
+            "
+          >
+            <!-- Folders section -->
+            <div class="mb-6">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-medium">Folders</h3>
+                <button
+                  id="collapse-folders"
+                  class="text-slate-500 dark:text-slate-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+              <div id="folders-container" class="max-h-60 overflow-y-auto">
+                <!-- Folders will be loaded here dynamically -->
+                <div
+                  class="text-slate-500 dark:text-slate-400 text-center py-4"
+                >
+                  <div class="animate-pulse flex justify-center mb-2">
+                    <div
+                      class="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700"
+                    ></div>
+                  </div>
+                  Loading folders...
+                </div>
+              </div>
+            </div>
+
+            <!-- Tags section -->
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-medium">Tags</h3>
+                <button
+                  id="collapse-tags"
+                  class="text-slate-500 dark:text-slate-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+              <div id="tags-container" class="max-h-40 overflow-y-auto">
+                <!-- Tags will be loaded here dynamically -->
+                <div class="flex flex-wrap gap-2">
+                  <span class="tag">No tags yet</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main content area - RIGHT SIDE -->
+          <div style="width: 67%; flex-grow: 1; padding-left: 16px">
+            <!-- Recent bookmarks section -->
+            <div class="mb-6">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-medium">Recent Bookmarks</h3>
+                <button
+                  id="collapse-recent"
+                  class="text-slate-500 dark:text-slate-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+              <div id="recent-bookmarks" class="max-h-60 overflow-y-auto">
+                <!-- Recent bookmarks will be loaded here dynamically -->
+                <div
+                  class="text-slate-500 dark:text-slate-400 text-center py-4"
+                >
+                  <div class="animate-pulse flex justify-center mb-2">
+                    <div
+                      class="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700"
+                    ></div>
+                  </div>
+                  Loading recent bookmarks...
+                </div>
+              </div>
+            </div>
+
+            <!-- Bookmarks section -->
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-medium">Bookmarks</h3>
+                <div class="text-sm">
+                  <span id="selection-count" class="hidden">0 selected</span>
+                  <button
+                    id="clear-selection"
+                    class="text-indigo-500 hover:underline ml-2 hidden"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div
+                id="bookmarks-container"
+                class="max-h-[500px] overflow-y-auto view-as-list rounded-lg"
+              >
+                <!-- Bookmarks will be loaded here dynamically -->
+                <div
+                  class="text-slate-500 dark:text-slate-400 text-center py-8"
+                >
+                  <div class="animate-pulse flex justify-center mb-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700"
+                    ></div>
+                  </div>
+                  Loading bookmarks...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer with stats -->
+      <footer
+        class="text-sm text-slate-500 dark:text-slate-400 text-center p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm"
+      >
+        <div id="stats">
+          Total bookmarks: <span id="total-bookmarks">0</span> in
+          <span id="total-folders">0</span> folders
+        </div>
+      </footer>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50"></div>
+
+    <!-- Modal for bookmark operations -->
+    <div id="bookmark-modal" class="modal">
+      <div
+        class="modal-content bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+      >
+        <div class="flex justify-between items-center mb-5">
+          <h3 id="modal-title" class="text-xl font-bold">Add Bookmark</h3>
+          <button
+            class="modal-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="bookmark-form">
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2" for="bookmark-title"
+              >Title</label
+            >
+            <input
+              id="bookmark-title"
+              type="text"
+              class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2" for="bookmark-url"
+              >URL</label
+            >
+            <input
+              id="bookmark-url"
+              type="url"
+              class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-medium mb-2" for="bookmark-tags"
+              >Tags</label
+            >
+            <input
+              id="bookmark-tags"
+              type="text"
+              class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Separate tags with commas"
+            />
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Example: work, reference, read-later
+            </div>
+          </div>
+          <input type="hidden" id="bookmark-id" />
+          <div class="flex justify-between">
+            <div>
+              <button
+                type="button"
+                class="modal-cancel px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg mr-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg shadow-sm shadow-indigo-200 dark:shadow-indigo-900/20 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+            <button
+              type="button"
+              id="modal-delete-btn"
+              class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors hidden"
+            >
+              Delete
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal for folder operations -->
+    <div id="folder-modal" class="modal">
+      <div
+        class="modal-content bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+      >
+        <div class="flex justify-between items-center mb-5">
+          <h3 id="folder-modal-title" class="text-xl font-bold">Add Folder</h3>
+          <button
+            class="modal-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="folder-form">
+          <div class="mb-5">
+            <label class="block text-sm font-medium mb-2" for="folder-name"
+              >Folder Name</label
+            >
+            <input
+              id="folder-name"
+              type="text"
+              class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <input type="hidden" id="folder-id" />
+          <div class="flex justify-between">
+            <div>
+              <button
+                type="button"
+                class="modal-cancel px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg mr-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg shadow-sm shadow-indigo-200 dark:shadow-indigo-900/20 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+            <button
+              type="button"
+              id="folder-modal-delete-btn"
+              class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors hidden"
+            >
+              Delete
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div id="settings-modal" class="modal">
+      <div
+        class="modal-content bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+      >
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-xl font-bold">Settings</h3>
+          <button
+            class="modal-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="settings-form">
+          <div class="mb-6">
+            <h4 class="font-medium mb-3">Search</h4>
+            <div class="flex items-center mb-3">
+              <input
+                type="checkbox"
+                id="setting-global-search"
+                class="w-4 h-4 mr-3 accent-indigo-500"
+                checked
+              />
+              <label for="setting-global-search">Enable global search</label>
+            </div>
+
+            <div class="flex items-center">
+              <input
+                type="checkbox"
+                id="setting-search-history"
+                class="w-4 h-4 mr-3 accent-indigo-500"
+                checked
+              />
+              <label for="setting-search-history">Save search history</label>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h4 class="font-medium mb-3">Data</h4>
+            <div class="flex justify-between mt-3">
+              <button
+                type="button"
+                id="export-btn"
+                class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm transition-colors"
+              >
+                <i class="fas fa-download mr-1"></i> Export Bookmarks
+              </button>
+              <button
+                type="button"
+                id="import-btn"
+                class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm transition-colors"
+              >
+                <i class="fas fa-upload mr-1"></i> Import Bookmarks
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-5 border-t border-slate-200 dark:border-slate-700">
+            <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Bookmark Manager Plus v1.1.0
+            </div>
+            <button
+              type="button"
+              id="reset-settings"
+              class="text-sm text-rose-500 hover:underline"
+            >
+              Reset all settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="../js/bookmark.js"></script>
+    <script src="../js/iframe-integration.js"></script>
+  </body>
+</html>

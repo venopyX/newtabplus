@@ -7,6 +7,7 @@ const ComponentLoader = {
   components: [
     { id: "header-container", path: "../components/header.html" },
     { id: "calendar-container", path: "../components/calendar.html" },
+    { id: "bookmark-dock-container", path: "../components/bookmark-dock.html" },
   ],
 
   dashboardCards: [

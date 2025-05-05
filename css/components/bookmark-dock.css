@@ -1,0 +1,183 @@
+/* Bookmark Dock System - Isolates bookmark functionality in a floating panel */
+
+.bookmark-dock-system {
+  --dock-width: 50rem;
+  --dock-height: 95vh;
+  --dock-bg: #1e293b;
+  --dock-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.25);
+  --dock-border-radius: 0.75rem 0 0 0.75rem;
+  --dock-tab-size: 3rem;
+  --dock-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --dock-zindex: 9500;
+  /* Scrollbar colors */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(203, 213, 225, 0.3);
+  --scrollbar-thumb-hover: rgba(203, 213, 225, 0.5);
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: var(--dock-zindex);
+}
+
+body.dark-mode .bookmark-dock-system,
+.dark .bookmark-dock-system {
+  --dock-bg: #0f172a;
+  --dock-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.45);
+  --scrollbar-thumb: rgba(71, 85, 105, 0.5);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.7);
+}
+
+.bookmark-dock-tab {
+  position: fixed;
+  right: 0;
+  top: 40%;
+  width: var(--dock-tab-size);
+  height: var(--dock-tab-size);
+  background: var(--dock-bg);
+  border-radius: 0.5rem 0 0 0.5rem;
+  box-shadow: var(--dock-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: var(--dock-zindex);
+  pointer-events: all;
+  transition: right var(--dock-transition);
+  color: #f0f0f5;
+}
+
+.bookmark-dock-tab:hover {
+  right: 0.1875rem;
+}
+
+.bookmark-dock-tab i {
+  font-size: 1.25rem;
+}
+
+.bookmark-dock-container {
+  position: fixed;
+  padding: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  right: calc(-1 * var(--dock-width) - 0.625rem);
+  width: var(--dock-width);
+  height: var(--dock-height);
+  background: var(--dock-bg);
+  border-radius: var(--dock-border-radius);
+  box-shadow: var(--dock-shadow);
+  transition: right var(--dock-transition);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: all;
+  z-index: var(--dock-zindex);
+}
+
+.bookmark-dock-system.active .bookmark-dock-container {
+  right: 0;
+}
+
+.bookmark-dock-system.active .bookmark-dock-tab {
+  right: var(--dock-width);
+}
+
+.bookmark-dock-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.bookmark-dock-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.bookmark-dock-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: transparent;
+}
+
+/* Custom scrollbar for the dock */
+.bookmark-dock-content iframe {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.bookmark-dock-container *::-webkit-scrollbar {
+  width: 0.375rem;
+  height: 0.375rem;
+}
+
+.bookmark-dock-container *::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 0.5rem;
+}
+
+.bookmark-dock-container *::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 0.5rem;
+}
+
+.bookmark-dock-container *::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Animation for tab when there are updates */
+@keyframes dock-tab-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bookmark-dock-tab.has-updates {
+  animation: dock-tab-pulse 1s infinite;
+  background-color: #4f46e5;
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 48rem) {
+  .bookmark-dock-system {
+    --dock-width: 100vw;
+    --dock-border-radius: 0.75rem 0.75rem 0 0;
+  }
+
+  .bookmark-dock-container {
+    top: auto;
+    bottom: -100vh;
+    right: 0;
+    height: 85vh;
+    transition: bottom var(--dock-transition);
+  }
+
+  .bookmark-dock-system.active .bookmark-dock-container {
+    bottom: 0;
+    right: 0;
+  }
+
+  .bookmark-dock-tab {
+    top: auto;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    border-radius: 50%;
+    width: 3.5rem;
+    height: 3.5rem;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.25);
+    transition: transform var(--dock-transition);
+  }
+
+  .bookmark-dock-system.active .bookmark-dock-tab {
+    right: 1.25rem;
+    transform: rotate(45deg);
+  }
+}
