@@ -30,6 +30,14 @@
 - Seamlessly continue playback across browsing sessions
 - Access your video library with a single click on the YouTube icon
 
+### 🔖 Bookmark Management
+
+- Organize bookmarks with a intuitive folder structure
+- Add custom tags to categorize and quickly find your links
+- Powerful search capabilities across all your saved bookmarks
+- Clean, modern interface with list and grid views for easy navigation
+- Import and export functionality to backup your bookmark collection
+
 ### 📅 Timed Tab Recall
 
 - Schedule tabs to open at specific times
