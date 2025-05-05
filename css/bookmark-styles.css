@@ -248,7 +248,7 @@ main {
 }
 
 /* Modal */
-.modal {
+.bm-modal {
   position: fixed;
   inset: 0;
   background-color: rgba(15, 23, 42, 0.5);
@@ -259,7 +259,7 @@ main {
   z-index: 50;
 }
 
-.modal.open {
+.bm-modal.open {
   display: flex;
 }
 
@@ -283,7 +283,7 @@ main {
   }
 }
 
-.modal-content {
+.bm-modal-content {
   animation: fadeIn 200ms ease-out, slideIn 200ms ease-out;
 }
 
@@ -630,7 +630,6 @@ main {
   animation: slideIn 200ms ease-out;
 }
 
-/* Responsive design adjustments */
 @media (max-width: 768px) {
   .container {
     padding: 1rem;

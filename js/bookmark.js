@@ -60,6 +60,17 @@ document.addEventListener("DOMContentLoaded", function () {
   loadSettings();
   setupEventListeners();
   initializeBookmarks();
+
+  // Modal close handlers
+  document.querySelectorAll(".bm-modal").forEach((modal) => {
+    // Close on ESC key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("open")) {
+        modal.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+    });
+  });
 });
 
 /**
@@ -123,8 +134,6 @@ function setupEventListeners() {
     .addEventListener("submit", saveSettings);
 
   document.addEventListener("keydown", handleKeyboardShortcuts);
-
-  setupModalListeners();
 
   breadcrumbContainer.addEventListener("click", handleBreadcrumbClick);
 
@@ -1462,7 +1471,7 @@ function toggleSection(e) {
 function handleKeyboardShortcuts(e) {
   if (e.key === "Escape") {
     hideContextMenus();
-    document.querySelectorAll(".modal").forEach((modal) => {
+    document.querySelectorAll(".bm-modal").forEach((modal) => {
       modal.classList.remove("open");
     });
   }
@@ -1492,7 +1501,7 @@ function showAddBookmarkModal() {
     }
   });
 
-  bookmarkModal.classList.add("open");
+  openModal("bookmark-modal");
 }
 
 /**
@@ -1513,7 +1522,7 @@ function showEditBookmarkModal(bookmark) {
 
   document.getElementById("modal-delete-btn").classList.remove("hidden");
 
-  bookmarkModal.classList.add("open");
+  openModal("bookmark-modal");
 }
 
 /**
@@ -1550,7 +1559,7 @@ function handleBookmarkSubmit(e) {
           "error"
         );
       } else {
-        hideBookmarkModal();
+        closeModal("bookmark-modal");
         showToast("Success", "Bookmark updated", "success");
         refreshBookmarks();
       }
@@ -1566,7 +1575,7 @@ function handleBookmarkSubmit(e) {
             "error"
           );
         } else {
-          hideBookmarkModal();
+          closeModal("bookmark-modal");
           showToast("Success", "Bookmark created", "success");
           refreshBookmarks();
         }
@@ -1576,20 +1585,13 @@ function handleBookmarkSubmit(e) {
 }
 
 /**
- * Hides bookmark modal
- */
-function hideBookmarkModal() {
-  bookmarkModal.classList.remove("open");
-}
-
-/**
  * Deletes the current bookmark
  */
 function deleteBookmark() {
   const id = bookmarkIdInput.value;
 
   if (!id) {
-    hideBookmarkModal();
+    closeModal("bookmark-modal");
     return;
   }
 
@@ -1602,7 +1604,7 @@ function deleteBookmark() {
           "error"
         );
       } else {
-        hideBookmarkModal();
+        closeModal("bookmark-modal");
         showToast("Success", "Bookmark deleted", "success");
         refreshBookmarks();
       }
@@ -1622,7 +1624,7 @@ function showAddFolderModal() {
 
   document.getElementById("folder-modal-delete-btn").classList.add("hidden");
 
-  document.getElementById("folder-modal").classList.add("open");
+  openModal("folder-modal");
 }
 
 /**
@@ -1636,7 +1638,7 @@ function showEditFolderModal(folder) {
 
   document.getElementById("folder-modal-delete-btn").classList.remove("hidden");
 
-  document.getElementById("folder-modal").classList.add("open");
+  openModal("folder-modal");
 }
 
 /**
@@ -1658,7 +1660,7 @@ function handleFolderSubmit(e) {
           "error"
         );
       } else {
-        hideFolderModal();
+        closeModal("folder-modal");
         showToast("Success", "Folder updated", "success");
         refreshBookmarks();
       }
@@ -1672,7 +1674,7 @@ function handleFolderSubmit(e) {
           "error"
         );
       } else {
-        hideFolderModal();
+        closeModal("folder-modal");
         showToast("Success", "Folder created", "success");
         refreshBookmarks();
       }
@@ -1681,10 +1683,51 @@ function handleFolderSubmit(e) {
 }
 
 /**
- * Hides folder modal
+ * Delete folder after verifying it's empty
  */
-function hideFolderModal() {
-  document.getElementById("folder-modal").classList.remove("open");
+function deleteFolder() {
+  const id = document.getElementById("folder-id").value;
+
+  if (!id) {
+    closeModal("folder-modal");
+    return;
+  }
+
+  chrome.bookmarks.getChildren(id, (children) => {
+    if (chrome.runtime.lastError) {
+      showToast(
+        "Error",
+        `Failed to check folder contents: ${chrome.runtime.lastError.message}`,
+        "error"
+      );
+      return;
+    }
+
+    if (children && children.length > 0) {
+      showToast(
+        "Warning",
+        "Cannot delete folder because it is not empty",
+        "warning"
+      );
+      return;
+    }
+
+    if (confirm("Are you sure you want to delete this folder?")) {
+      chrome.bookmarks.remove(id, () => {
+        if (chrome.runtime.lastError) {
+          showToast(
+            "Error",
+            `Failed to delete folder: ${chrome.runtime.lastError.message}`,
+            "error"
+          );
+        } else {
+          closeModal("folder-modal");
+          showToast("Success", "Folder deleted", "success");
+          refreshBookmarks();
+        }
+      });
+    }
+  });
 }
 
 // ---- SETTINGS OPERATIONS ----
@@ -1693,7 +1736,7 @@ function hideFolderModal() {
  * Shows settings modal
  */
 function showSettingsModal() {
-  document.getElementById("settings-modal").classList.add("open");
+  openModal("settings-modal");
 }
 
 /**
@@ -1710,7 +1753,7 @@ function saveSettings(e) {
   };
 
   chrome.storage.sync.set(settings, () => {
-    document.getElementById("settings-modal").classList.remove("open");
+    closeModal("settings-modal");
     showToast("Success", "Settings saved", "success");
 
     isDarkMode = settings.darkMode;
@@ -1873,78 +1916,42 @@ function renderTags() {
 // ---- UTILITY FUNCTIONS ----
 
 /**
- * Set up modal listeners for closing and deletion actions
+ * Open a modal
+ * @param {string} modalId - ID of the modal to open
  */
-function setupModalListeners() {
-  document.querySelectorAll(".modal").forEach((modal) => {
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        modal.classList.remove("open");
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.add("open");
+    document.body.style.overflow = "hidden";
+
+    // Add event listener for the close button
+    const closeButtons = modal.querySelectorAll(".modal-close, .modal-cancel");
+    closeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        closeModal(modalId);
+      });
+    });
+
+    // Add event listener to close modal when clicking outside the content
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal(modalId);
       }
     });
-  });
-
-  document.querySelectorAll(".modal-close, .modal-cancel").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      btn.closest(".modal").classList.remove("open");
-    });
-  });
-
-  document
-    .getElementById("modal-delete-btn")
-    .addEventListener("click", deleteBookmark);
-
-  document
-    .getElementById("folder-modal-delete-btn")
-    .addEventListener("click", deleteFolder);
+  }
 }
 
 /**
- * Delete folder after verifying it's empty
+ * Close a modal
+ * @param {string} modalId - ID of the modal to close
  */
-function deleteFolder() {
-  const id = document.getElementById("folder-id").value;
-
-  if (!id) {
-    hideFolderModal();
-    return;
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove("open");
+    document.body.style.overflow = "";
   }
-
-  chrome.bookmarks.getChildren(id, (children) => {
-    if (chrome.runtime.lastError) {
-      showToast(
-        "Error",
-        `Failed to check folder contents: ${chrome.runtime.lastError.message}`,
-        "error"
-      );
-      return;
-    }
-
-    if (children && children.length > 0) {
-      showToast(
-        "Warning",
-        "Cannot delete folder because it is not empty",
-        "warning"
-      );
-      return;
-    }
-
-    if (confirm("Are you sure you want to delete this folder?")) {
-      chrome.bookmarks.remove(id, () => {
-        if (chrome.runtime.lastError) {
-          showToast(
-            "Error",
-            `Failed to delete folder: ${chrome.runtime.lastError.message}`,
-            "error"
-          );
-        } else {
-          hideFolderModal();
-          showToast("Success", "Folder deleted", "success");
-          refreshBookmarks();
-        }
-      });
-    }
-  });
 }
 
 /**
