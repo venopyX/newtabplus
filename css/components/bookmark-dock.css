@@ -2,7 +2,7 @@
 
 .bookmark-dock-system {
   --dock-width: 50rem;
-  --dock-height: 90vh;
+  --dock-height: 95vh;
   --dock-bg: #1e293b;
   --dock-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.25);
   --dock-border-radius: 0.75rem 0 0 0.75rem;
@@ -60,7 +60,8 @@ body.dark-mode .bookmark-dock-system,
 .bookmark-dock-container {
   position: fixed;
   padding: 8px;
-  top: 4.375rem;
+  top: 50%;
+  transform: translateY(-50%);
   right: calc(-1 * var(--dock-width) - 0.625rem);
   width: var(--dock-width);
   height: var(--dock-height);
